@@ -11,6 +11,10 @@ import refreshRoute from "./routes/auth/refresh.js";
 import changePasswordRoute from "./routes/auth/change-password.js";
 import challengeRoute from "./routes/auth/challenge.js";
 import meRoute from "./routes/auth/me.js";
+import createServerRoute from "./routes/servers/create.js";
+import listServersRoute from "./routes/servers/index.js";
+import serverByIdRoute from "./routes/servers/[id].js";
+import serverMembersRoute from "./routes/servers/members.js";
 import { setupSocketIO } from "./socket/index.js";
 
 // Augment Fastify types so route handlers can access io
@@ -45,6 +49,12 @@ await server.register(refreshRoute, { prefix: "/api/auth" });
 await server.register(changePasswordRoute, { prefix: "/api/auth" });
 await server.register(challengeRoute, { prefix: "/api/auth" });
 await server.register(meRoute, { prefix: "/api/auth" });
+
+// Server routes
+await server.register(createServerRoute, { prefix: "/api/servers" });
+await server.register(listServersRoute, { prefix: "/api/servers" });
+await server.register(serverByIdRoute, { prefix: "/api/servers" });
+await server.register(serverMembersRoute, { prefix: "/api/servers" });
 
 // Graceful shutdown
 const shutdown = async (): Promise<void> => {
