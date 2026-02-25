@@ -36,6 +36,7 @@ import { useChannels, useReorderChannels } from "@/hooks/useChannels";
 import { useServers } from "@/hooks/useServers";
 import { useAuth } from "@/hooks/useAuth";
 import ChannelItem from "./ChannelItem";
+import InviteModal from "./InviteModal";
 import type { ChannelResponse } from "@tether/shared";
 
 // ============================================================
@@ -197,6 +198,10 @@ export default function ChannelList({ serverId }: ChannelListProps) {
 
   const server = servers?.find((s) => s.id === serverId);
 
+  // Dropdown and invite modal state
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [inviteModalOpen, setInviteModalOpen] = useState(false);
+
   // Local state for optimistic drag-and-drop reorder
   const [localChannels, setLocalChannels] = useState<ChannelResponse[]>([]);
 
@@ -247,11 +252,50 @@ export default function ChannelList({ serverId }: ChannelListProps) {
 
   return (
     <div className="flex flex-col h-full bg-zinc-800">
-      {/* Server name header */}
-      <div className="px-4 py-3 border-b border-zinc-700/60 shrink-0">
-        <h2 className="text-zinc-100 font-bold text-sm truncate">
-          {server?.name ?? "Loading..."}
-        </h2>
+      {/* Server name header — clickable dropdown */}
+      <div className="relative shrink-0">
+        <button
+          onClick={() => setShowDropdown((d) => !d)}
+          className="w-full px-4 py-3 border-b border-zinc-700/60 flex items-center justify-between hover:bg-zinc-700/30 transition-colors cursor-pointer"
+        >
+          <h2 className="text-zinc-100 font-bold text-sm truncate">
+            {server?.name ?? "Loading..."}
+          </h2>
+          <svg
+            width="12"
+            height="12"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            className={`text-zinc-400 transition-transform duration-150 shrink-0 ${showDropdown ? "rotate-180" : ""}`}
+          >
+            <path d="M7 10l5 5 5-5z" />
+          </svg>
+        </button>
+
+        {/* Dropdown menu */}
+        {showDropdown && (
+          <>
+            {/* Backdrop to close dropdown */}
+            <div
+              className="fixed inset-0 z-10"
+              onClick={() => setShowDropdown(false)}
+            />
+            <div className="absolute left-2 right-2 top-full mt-1 z-20 bg-zinc-900 border border-zinc-700/50 rounded-lg shadow-xl py-1">
+              <button
+                onClick={() => {
+                  setShowDropdown(false);
+                  setInviteModalOpen(true);
+                }}
+                className="w-full px-3 py-2 text-left text-sm text-indigo-400 hover:bg-indigo-500/20 transition-colors flex items-center gap-2"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                </svg>
+                Invite People
+              </button>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Channel groups — scrollable */}
@@ -284,6 +328,13 @@ export default function ChannelList({ serverId }: ChannelListProps) {
 
       {/* User info bar — pinned to bottom */}
       <UserInfoBar />
+
+      {/* Invite modal */}
+      <InviteModal
+        open={inviteModalOpen}
+        onOpenChange={setInviteModalOpen}
+        serverId={serverId}
+      />
     </div>
   );
 }
