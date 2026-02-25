@@ -22,6 +22,11 @@ declare module "fastify" {
 
 const server = Fastify({ logger: true });
 
+// Pre-decorate io with null BEFORE server starts (Fastify 5 requirement:
+// decorators cannot be added after server.listen() is called)
+// The actual Socket.IO instance is assigned after HTTP server is ready.
+server.decorate("io", null as unknown as SocketIOServer);
+
 // Register plugins (order matters: cors -> cookie -> auth)
 await server.register(corsPlugin);
 await server.register(cookiePlugin);
@@ -64,8 +69,11 @@ server.listen({ port, host: "0.0.0.0" }, async (err, address) => {
   }
   server.log.info(`Tether server running on :${port} at ${address}`);
 
-  // Attach Socket.IO to the Fastify HTTP server after it's listening
+  // Attach Socket.IO to the Fastify HTTP server after it's listening.
+  // We mutate the pre-decorated property (not decorate again) to comply
+  // with Fastify 5's decorator-before-start requirement.
   const io = await setupSocketIO(server.server, server.log);
-  server.decorate("io", io);
+  // Directly assign to the decorated property (mutation, not re-decoration)
+  (server as unknown as { io: SocketIOServer }).io = io;
   server.log.info("Socket.IO server ready");
 });
