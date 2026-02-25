@@ -10,28 +10,28 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 ## Current Position
 
 Phase: 2 of 7 (Servers and Channels)
-Plan: 1 of 6 in current phase (02-01 complete)
+Plan: 2 of 6 in current phase (02-01, 02-02 complete)
 Status: In progress
-Last activity: 2026-02-25 — Completed 02-01-PLAN.md (Server REST API and Socket.IO room infrastructure)
+Last activity: 2026-02-25 — Completed 02-02-PLAN.md (Client infrastructure: TanStack Query, Socket.IO hook, AppShell)
 
-Progress: [████░░░░░░] 18% (7/38 plans complete)
+Progress: [████░░░░░░] 21% (8/38 plans complete)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 6
-- Average duration: 4 min
-- Total execution time: 24 min
+- Total plans completed: 8
+- Average duration: 3.25 min
+- Total execution time: 26 min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-foundation | 6/7 | 24 min | 4 min |
-| 02-servers-and-channels | 1/6 | 2 min | 2 min |
+| 02-servers-and-channels | 2/6 | 4 min | 2 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-06 (2 min), 01-03 (4 min), 01-04 (5 min), 01-05 (5 min), 02-01 (2 min)
+- Last 5 plans: 01-03 (4 min), 01-04 (5 min), 01-05 (5 min), 02-01 (2 min), 02-02 (2 min)
 - Trend: Fast infrastructure and API plans
 
 *Updated after each plan completion*
@@ -77,6 +77,10 @@ Recent decisions affecting current work:
 - 02-01: registerConnectionHandlers made async; io.on("connection") caller uses .catch() fire-and-forget to avoid unhandled rejections
 - 02-01: Socket room naming pattern locked: user:{userId} for personal events, server:{serverId} for server-scoped broadcasts
 - 02-01: server:subscribe verifies DB membership before joining room (prevents unauthorized room access via crafted events)
+- 02-02: useSocket.tsx uses .tsx extension (not .ts) — file returns JSX (SocketContext.Provider); .ts causes esbuild parse failure
+- 02-02: Socket.IO client connects to VITE_API_URL origin (not via Vite proxy) — Vite proxy only handles /api REST, cannot proxy WebSocket upgrades
+- 02-02: SocketProvider placed inside AppShell (behind ProtectedRoute) — socket only connects when user is authenticated
+- 02-02: QueryClientProvider wraps outermost BrowserRouter tree (outside AuthProvider) for future-proofing
 
 ### Pending Todos
 
@@ -88,6 +92,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-25T19:45:23Z
-Stopped at: Completed 02-01-PLAN.md — Server REST API and Socket.IO room infrastructure
+Last session: 2026-02-25T19:46:52Z
+Stopped at: Completed 02-02-PLAN.md — Client infrastructure: TanStack Query, Socket.IO hook, AppShell layout
 Resume file: None
