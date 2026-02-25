@@ -22,43 +22,11 @@ export function AuthLayout({ children }: AuthLayoutProps) {
 
         {/* Logo */}
         <div className="relative z-10">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-cyan-400/10 border border-cyan-400/20 flex items-center justify-center">
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-                className="text-cyan-400"
-              >
-                <path
-                  d="M12 2L2 7L12 12L22 7L12 2Z"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                <path
-                  d="M2 17L12 22L22 17"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                <path
-                  d="M2 12L12 17L22 12"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </div>
-            <span className="text-2xl font-bold text-cyan-400 tracking-tight">
-              Tether
-            </span>
-          </div>
+          <img
+            src="/assets/tether-logo.svg"
+            alt="Tether"
+            className="h-12 w-auto"
+          />
         </div>
 
         {/* Value proposition */}
@@ -109,21 +77,7 @@ export function AuthLayout({ children }: AuthLayoutProps) {
         {/* Bottom trust signal */}
         <div className="relative z-10">
           <div className="flex items-center gap-2 text-zinc-500 text-xs">
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              className="text-cyan-400/60"
-            >
-              <path
-                d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
+            <img src="/assets/tether-icon.svg" alt="" className="w-4 h-4 opacity-60" />
             <span>256-bit AES-GCM encryption &bull; PBKDF2-600k &bull; X25519 + Ed25519</span>
           </div>
         </div>
@@ -133,37 +87,11 @@ export function AuthLayout({ children }: AuthLayoutProps) {
       <div className="flex-1 flex flex-col bg-zinc-900/50 lg:bg-zinc-900/30">
         {/* Mobile header */}
         <div className="lg:hidden flex items-center gap-2 p-6 border-b border-zinc-800">
-          <div className="w-7 h-7 rounded-lg bg-cyan-400/10 border border-cyan-400/20 flex items-center justify-center">
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              className="text-cyan-400"
-            >
-              <path
-                d="M12 2L2 7L12 12L22 7L12 2Z"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M2 17L12 22L22 17"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M2 12L12 17L22 12"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </div>
+          <img
+            src="/assets/tether-icon.svg"
+            alt="Tether"
+            className="w-7 h-7"
+          />
           <span className="text-lg font-bold text-cyan-400">Tether</span>
         </div>
 

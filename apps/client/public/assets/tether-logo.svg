@@ -1,0 +1,103 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 250" width="880" height="250">
+  <defs>
+    <linearGradient id="glowGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#00E5FF;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#00B8D4;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0091EA;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="iconGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#00E5FF;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0064B7;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="chainGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#00E5FF;stop-opacity:0.9" />
+      <stop offset="100%" style="stop-color:#00B8D4;stop-opacity:0.4" />
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="bigGlow">
+      <feGaussianBlur stdDeviation="8" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="subtleGlow">
+      <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="880" height="250" fill="#0D1117" rx="16"/>
+
+  <!-- Icon: Shield with chain/tether links -->
+  <g transform="translate(45, 25)">
+    <!-- Outer shield glow -->
+    <path d="M90 10 L170 40 L170 110 C170 155 135 185 90 200 C45 185 10 155 10 110 L10 40 Z" 
+          fill="none" stroke="#00E5FF" stroke-width="1" opacity="0.2" filter="url(#bigGlow)"/>
+    
+    <!-- Shield body -->
+    <path d="M90 18 L162 45 L162 108 C162 148 130 176 90 190 C50 176 18 148 18 108 L18 45 Z" 
+          fill="#0D1117" stroke="url(#iconGrad)" stroke-width="3" filter="url(#glow)"/>
+    
+    <!-- Inner shield highlight -->
+    <path d="M90 30 L150 52 L150 105 C150 138 124 162 90 174 C56 162 30 138 30 105 L30 52 Z" 
+          fill="none" stroke="#00E5FF" stroke-width="0.5" opacity="0.3"/>
+
+    <!-- Tether/Chain link symbol inside shield -->
+    <!-- Top link -->
+    <rect x="70" y="58" width="40" height="24" rx="12" fill="none" stroke="url(#glowGrad)" stroke-width="3" filter="url(#subtleGlow)"/>
+    <!-- Bottom link (overlapping) -->
+    <rect x="70" y="72" width="40" height="24" rx="12" fill="none" stroke="url(#glowGrad)" stroke-width="3" filter="url(#subtleGlow)"/>
+    <!-- Connecting vertical line through links -->
+    <line x1="90" y1="52" x2="90" y2="105" stroke="url(#chainGrad)" stroke-width="2" opacity="0.5"/>
+    
+    <!-- Lock keyhole dot -->
+    <circle cx="90" cy="120" r="4" fill="#00E5FF" filter="url(#glow)"/>
+    <rect x="88" y="120" width="4" height="10" rx="1" fill="#00E5FF" opacity="0.7"/>
+
+    <!-- Small decorative nodes -->
+    <circle cx="50" cy="80" r="2" fill="#00E5FF" opacity="0.4"/>
+    <circle cx="130" cy="80" r="2" fill="#00E5FF" opacity="0.4"/>
+    <line x1="52" y1="80" x2="70" y2="75" stroke="#00E5FF" stroke-width="0.5" opacity="0.3"/>
+    <line x1="128" y1="80" x2="110" y2="75" stroke="#00E5FF" stroke-width="0.5" opacity="0.3"/>
+  </g>
+
+  <!-- Wordmark: TETHER -->
+  <g transform="translate(250, 145)">
+    <!-- Main text -->
+    <text font-family="'Rajdhani', 'Orbitron', 'Share Tech', 'Segoe UI', sans-serif" 
+          font-size="108" font-weight="700" letter-spacing="12" 
+          fill="url(#glowGrad)" filter="url(#glow)">
+      TETHER
+    </text>
+    
+    <!-- Subtitle -->
+    <text y="48" font-family="'Rajdhani', 'Share Tech Mono', 'Consolas', monospace" 
+          font-size="18" font-weight="400" letter-spacing="8" 
+          fill="#00E5FF" opacity="0.5">
+      ENCRYPTED · ON-PREMISE · SECURE
+    </text>
+
+    <!-- Decorative line under text -->
+    <line x1="0" y1="58" x2="480" y2="58" stroke="url(#glowGrad)" stroke-width="1" opacity="0.2"/>
+    
+    <!-- Accent dots -->
+    <circle cx="0" cy="58" r="2" fill="#00E5FF" opacity="0.6"/>
+    <circle cx="480" cy="58" r="2" fill="#00E5FF" opacity="0.6"/>
+  </g>
+
+  <!-- Decorative circuit lines -->
+  <line x1="230" y1="30" x2="230" y2="220" stroke="#00E5FF" stroke-width="0.5" opacity="0.15"/>
+  <circle cx="230" cy="30" r="3" fill="#00E5FF" opacity="0.2"/>
+  <circle cx="230" cy="220" r="3" fill="#00E5FF" opacity="0.2"/>
+</svg>

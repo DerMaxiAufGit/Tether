@@ -1,0 +1,109 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0A0F1A;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0D1117;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="shieldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#00E5FF;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0064B7;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="linkGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#00E5FF;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#00B8D4;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0091EA;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="vertLine" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#00E5FF;stop-opacity:0.8" />
+      <stop offset="100%" style="stop-color:#00B8D4;stop-opacity:0.2" />
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="outerGlow">
+      <feGaussianBlur stdDeviation="12" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="innerGlow">
+      <feGaussianBlur stdDeviation="2.5" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <clipPath id="roundedSquare">
+      <rect width="512" height="512" rx="96" />
+    </clipPath>
+  </defs>
+
+  <!-- Clipped rounded square -->
+  <g clip-path="url(#roundedSquare)">
+    <!-- Background -->
+    <rect width="512" height="512" fill="url(#bgGrad)"/>
+    
+    <!-- Subtle radial glow behind shield -->
+    <circle cx="256" cy="240" r="180" fill="#00E5FF" opacity="0.03"/>
+    <circle cx="256" cy="240" r="120" fill="#00E5FF" opacity="0.04"/>
+
+    <!-- Outer shield glow -->
+    <path d="M256 60 L400 115 L400 260 C400 345 335 400 256 435 C177 400 112 345 112 260 L112 115 Z" 
+          fill="none" stroke="#00E5FF" stroke-width="1.5" opacity="0.15" filter="url(#outerGlow)"/>
+
+    <!-- Shield body -->
+    <path d="M256 75 L388 125 L388 255 C388 332 328 384 256 416 C184 384 124 332 124 255 L124 125 Z" 
+          fill="#0D1117" stroke="url(#shieldGrad)" stroke-width="4.5" filter="url(#glow)"/>
+    
+    <!-- Inner shield line -->
+    <path d="M256 100 L368 142 L368 248 C368 316 316 360 256 388 C196 360 144 316 144 248 L144 142 Z" 
+          fill="none" stroke="#00E5FF" stroke-width="1" opacity="0.2"/>
+
+    <!-- Chain/Tether links inside shield -->
+    <!-- Top chain link -->
+    <rect x="216" y="168" width="80" height="48" rx="24" fill="none" stroke="url(#linkGrad)" stroke-width="5" filter="url(#innerGlow)"/>
+    <!-- Bottom chain link (interlocked) -->
+    <rect x="216" y="198" width="80" height="48" rx="24" fill="none" stroke="url(#linkGrad)" stroke-width="5" filter="url(#innerGlow)"/>
+    
+    <!-- Vertical tether line -->
+    <line x1="256" y1="140" x2="256" y2="310" stroke="url(#vertLine)" stroke-width="2.5" opacity="0.4"/>
+
+    <!-- Lock keyhole -->
+    <circle cx="256" cy="290" r="8" fill="#00E5FF" filter="url(#glow)"/>
+    <rect x="253" y="290" width="6" height="18" rx="2" fill="#00E5FF" opacity="0.7"/>
+
+    <!-- Side accent nodes -->
+    <circle cx="170" cy="210" r="4" fill="#00E5FF" opacity="0.35"/>
+    <circle cx="342" cy="210" r="4" fill="#00E5FF" opacity="0.35"/>
+    <line x1="174" y1="210" x2="216" y2="198" stroke="#00E5FF" stroke-width="1" opacity="0.2"/>
+    <line x1="338" y1="210" x2="296" y2="198" stroke="#00E5FF" stroke-width="1" opacity="0.2"/>
+
+    <!-- Bottom accent nodes -->
+    <circle cx="210" cy="340" r="3" fill="#00E5FF" opacity="0.2"/>
+    <circle cx="302" cy="340" r="3" fill="#00E5FF" opacity="0.2"/>
+    <line x1="210" y1="340" x2="250" y2="308" stroke="#00E5FF" stroke-width="0.8" opacity="0.15"/>
+    <line x1="302" y1="340" x2="262" y2="308" stroke="#00E5FF" stroke-width="0.8" opacity="0.15"/>
+
+    <!-- Corner circuit accents -->
+    <line x1="40" y1="40" x2="40" y2="90" stroke="#00E5FF" stroke-width="1" opacity="0.1"/>
+    <line x1="40" y1="40" x2="90" y2="40" stroke="#00E5FF" stroke-width="1" opacity="0.1"/>
+    <circle cx="40" cy="40" r="3" fill="#00E5FF" opacity="0.15"/>
+
+    <line x1="472" y1="40" x2="472" y2="90" stroke="#00E5FF" stroke-width="1" opacity="0.1"/>
+    <line x1="472" y1="40" x2="422" y2="40" stroke="#00E5FF" stroke-width="1" opacity="0.1"/>
+    <circle cx="472" cy="40" r="3" fill="#00E5FF" opacity="0.15"/>
+
+    <line x1="40" y1="472" x2="40" y2="422" stroke="#00E5FF" stroke-width="1" opacity="0.1"/>
+    <line x1="40" y1="472" x2="90" y2="472" stroke="#00E5FF" stroke-width="1" opacity="0.1"/>
+    <circle cx="40" cy="472" r="3" fill="#00E5FF" opacity="0.15"/>
+
+    <line x1="472" y1="472" x2="472" y2="422" stroke="#00E5FF" stroke-width="1" opacity="0.1"/>
+    <line x1="472" y1="472" x2="422" y2="472" stroke="#00E5FF" stroke-width="1" opacity="0.1"/>
+    <circle cx="472" cy="472" r="3" fill="#00E5FF" opacity="0.15"/>
+  </g>
+</svg>
