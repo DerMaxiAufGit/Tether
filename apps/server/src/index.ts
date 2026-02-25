@@ -1,4 +1,5 @@
 import Fastify from "fastify";
+import type { Server as SocketIOServer } from "socket.io";
 import { TETHER_VERSION } from "@tether/shared";
 import corsPlugin from "./plugins/cors.js";
 import cookiePlugin from "./plugins/cookie.js";
@@ -8,6 +9,14 @@ import loginRoute from "./routes/auth/login.js";
 import logoutRoute from "./routes/auth/logout.js";
 import refreshRoute from "./routes/auth/refresh.js";
 import changePasswordRoute from "./routes/auth/change-password.js";
+import { setupSocketIO } from "./socket/index.js";
+
+// Augment Fastify types so route handlers can access io
+declare module "fastify" {
+  interface FastifyInstance {
+    io: SocketIOServer;
+  }
+}
 
 const server = Fastify({ logger: true });
 
@@ -31,6 +40,10 @@ await server.register(changePasswordRoute, { prefix: "/api/auth" });
 // Graceful shutdown
 const shutdown = async (): Promise<void> => {
   server.log.info("Shutting down server...");
+  // Close Socket.IO and its Redis client before closing Fastify
+  if (server.io) {
+    await new Promise<void>((resolve) => server.io.close(() => resolve()));
+  }
   await server.close();
   process.exit(0);
 };
@@ -40,10 +53,15 @@ process.on("SIGINT", shutdown);
 
 const port = Number(process.env.PORT) || 3001;
 
-server.listen({ port, host: "0.0.0.0" }, (err, address) => {
+server.listen({ port, host: "0.0.0.0" }, async (err, address) => {
   if (err) {
     server.log.error(err);
     process.exit(1);
   }
   server.log.info(`Tether server running on :${port} at ${address}`);
+
+  // Attach Socket.IO to the Fastify HTTP server after it's listening
+  const io = await setupSocketIO(server.server, server.log);
+  server.decorate("io", io);
+  server.log.info("Socket.IO server ready");
 });
