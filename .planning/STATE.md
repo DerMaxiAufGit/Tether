@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 ## Current Position
 
 Phase: 2 of 7 (Servers and Channels)
-Plan: 2 of 6 in current phase (02-01, 02-02 complete)
+Plan: 4 of 6 in current phase (02-01, 02-02, 02-04 complete)
 Status: In progress
-Last activity: 2026-02-25 — Completed 02-02-PLAN.md (Client infrastructure: TanStack Query, Socket.IO hook, AppShell)
+Last activity: 2026-02-25 — Completed 02-04-PLAN.md (Channel CRUD API with reorder endpoint + client hooks)
 
-Progress: [████░░░░░░] 21% (8/38 plans complete)
+Progress: [████░░░░░░] 24% (9/38 plans complete)
 
 ## Performance Metrics
 
@@ -28,10 +28,10 @@ Progress: [████░░░░░░] 21% (8/38 plans complete)
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-foundation | 6/7 | 24 min | 4 min |
-| 02-servers-and-channels | 2/6 | 4 min | 2 min |
+| 02-servers-and-channels | 3/6 | 6 min | 2 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-03 (4 min), 01-04 (5 min), 01-05 (5 min), 02-01 (2 min), 02-02 (2 min)
+- Last 5 plans: 01-04 (5 min), 01-05 (5 min), 02-01 (2 min), 02-02 (2 min), 02-04 (2 min)
 - Trend: Fast infrastructure and API plans
 
 *Updated after each plan completion*
@@ -81,6 +81,11 @@ Recent decisions affecting current work:
 - 02-02: Socket.IO client connects to VITE_API_URL origin (not via Vite proxy) — Vite proxy only handles /api REST, cannot proxy WebSocket upgrades
 - 02-02: SocketProvider placed inside AppShell (behind ProtectedRoute) — socket only connects when user is authenticated
 - 02-02: QueryClientProvider wraps outermost BrowserRouter tree (outside AuthProvider) for future-proofing
+- 02-04: Channel PATCH/DELETE registered under /api/channels (not /api/servers) — only need channel ID; serverId looked up from DB
+- 02-04: Owner-only guard for channel mutations in Phase 2; Phase 7 will replace with fine-grained role checks
+- 02-04: Position compaction uses ordered SELECT + CASE in same transaction as DELETE — no position gaps
+- 02-04: Reorder endpoint validates all IDs belong to the server before applying SQL CASE update
+- 02-04: SQL CASE reorder pattern: sql`CASE ${sql.join(cases, sql` `)} END` with inArray WHERE
 
 ### Pending Todos
 
@@ -92,6 +97,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-25T19:46:52Z
-Stopped at: Completed 02-02-PLAN.md — Client infrastructure: TanStack Query, Socket.IO hook, AppShell layout
+Last session: 2026-02-25T19:53:23Z
+Stopped at: Completed 02-04-PLAN.md — Channel CRUD API with reorder endpoint + client hooks
 Resume file: None
