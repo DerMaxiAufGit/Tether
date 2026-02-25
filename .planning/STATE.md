@@ -10,28 +10,28 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 ## Current Position
 
 Phase: 1 of 7 (Foundation)
-Plan: 6 of 7 in current phase
+Plan: 3 of 7 in current phase (01-03 complete)
 Status: In progress
-Last activity: 2026-02-25 — Completed 01-06-PLAN.md (Docker Compose infrastructure + Coturn isolation)
+Last activity: 2026-02-25 — Completed 01-03-PLAN.md (crypto layer: Web Worker + typed API)
 
-Progress: [██░░░░░░░░] 8% (3/38 plans complete)
+Progress: [██░░░░░░░░] 10% (4/38 plans complete)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 3
+- Total plans completed: 4
 - Average duration: 4 min
-- Total execution time: 10 min
+- Total execution time: 14 min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 01-foundation | 3/7 | 10 min | 3 min |
+| 01-foundation | 4/7 | 14 min | 4 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (3 min), 01-02 (5 min), 01-06 (2 min)
-- Trend: Fast infrastructure plans
+- Last 5 plans: 01-01 (3 min), 01-02 (5 min), 01-06 (2 min), 01-03 (4 min)
+- Trend: Fast infrastructure and crypto plans
 
 *Updated after each plan completion*
 
@@ -57,6 +57,10 @@ Recent decisions affecting current work:
 - 01-06: Six denied-peer-ip rules cover all RFC 1918, loopback (127.x + ::1), and link-local (169.254.x) ranges
 - 01-06: Dev relay port range 49152-49200 (small); expand to 49152-65535 or network_mode: host for production Linux
 - 01-06: generate-secrets.sh uses openssl rand and refuses to overwrite existing .env
+- 01-03: Ed25519 public key exported as 'spki' (not 'raw') for broad browser compatibility
+- 01-03: HKDF zero salt is correct — all entropy from PBKDF2 salt per RFC 5869
+- 01-03: Encryption key non-extractable — cannot be exported from browser even by compromised JS
+- 01-03: KDF constants locked: KDF_ITERATIONS=600000, AUTH_HKDF_INFO="tether-auth-key-v1", ENCRYPTION_HKDF_INFO="tether-encryption-key-v1"
 
 ### Pending Todos
 
@@ -69,6 +73,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-25T16:57:30Z
-Stopped at: Completed 01-06-PLAN.md — Docker Compose infrastructure + Coturn isolation
+Last session: 2026-02-25T16:58:48Z
+Stopped at: Completed 01-03-PLAN.md — crypto layer (Web Worker + typed Promise API)
 Resume file: None
