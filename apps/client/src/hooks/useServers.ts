@@ -5,7 +5,10 @@ import type { ServerResponse, CreateServerRequest } from "@tether/shared";
 export function useServers() {
   return useQuery({
     queryKey: ["servers"],
-    queryFn: () => api.get<ServerResponse[]>("/api/servers"),
+    queryFn: () =>
+      api
+        .get<{ servers: ServerResponse[] }>("/api/servers")
+        .then((data) => data.servers),
   });
 }
 
@@ -15,7 +18,7 @@ export function useCreateServer() {
     mutationFn: (data: CreateServerRequest) =>
       api.post<ServerResponse>("/api/servers", data),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["servers"] });
+      void queryClient.invalidateQueries({ queryKey: ["servers"], exact: true });
     },
   });
 }

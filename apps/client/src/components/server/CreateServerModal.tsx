@@ -12,6 +12,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Dialog } from "radix-ui";
 import { useCreateServer } from "@/hooks/useServers";
+import { useSocket } from "@/hooks/useSocket";
 import type { ServerResponse } from "@tether/shared";
 
 // ============================================================
@@ -37,6 +38,7 @@ export default function CreateServerModal({ open, onOpenChange }: CreateServerMo
   const navigate = useNavigate();
 
   const createServer = useCreateServer();
+  const socket = useSocket();
 
   function handleClose() {
     onOpenChange(false);
@@ -66,8 +68,13 @@ export default function CreateServerModal({ open, onOpenChange }: CreateServerMo
 
     try {
       const server = await createServer.mutateAsync({ name });
+      const serverId = (server as ServerResponse).id;
+
+      // Join the socket room for the new server so real-time events work
+      socket.emit("server:subscribe", { serverId });
+
       handleClose();
-      navigate(`/servers/${(server as ServerResponse).id}`);
+      navigate(`/servers/${serverId}`);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Failed to create server.";
       setError(message);

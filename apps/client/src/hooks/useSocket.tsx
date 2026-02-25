@@ -82,7 +82,16 @@ export function SocketProvider({ children }: SocketProviderProps) {
     socket.auth = { token };
     socket.connect();
 
+    // Refresh auth token before each reconnect attempt so expired tokens
+    // don't cause silent auth failures after a disconnect.
+    const onReconnectAttempt = () => {
+      const freshToken = getAccessToken();
+      socket.auth = { token: freshToken };
+    };
+    socket.io.on("reconnect_attempt", onReconnectAttempt);
+
     return () => {
+      socket.io.off("reconnect_attempt", onReconnectAttempt);
       socket.disconnect();
     };
   }, [isAuthenticated, socket]);
