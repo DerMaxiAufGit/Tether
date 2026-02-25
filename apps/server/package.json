@@ -6,14 +6,20 @@
     "build": "tsc",
     "dev": "tsx watch src/index.ts",
     "lint": "eslint src/",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:push": "drizzle-kit push"
   },
   "dependencies": {
     "@tether/shared": "workspace:*",
-    "fastify": "^5.3.0"
+    "drizzle-orm": "^0.45.1",
+    "fastify": "^5.3.0",
+    "postgres": "^3.4.8"
   },
   "devDependencies": {
     "@types/node": "^22.13.5",
+    "drizzle-kit": "^0.31.9",
     "tsx": "^4.19.3",
     "typescript": "^5.7.3"
   }
