@@ -10,29 +10,29 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 ## Current Position
 
 Phase: 2 of 7 (Servers and Channels)
-Plan: 7 of 8 in current phase (02-01, 02-02, 02-03, 02-04, 02-05, 02-07 complete; 02-06 gap plan pending)
+Plan: 8 of 8 in current phase (02-01, 02-02, 02-03, 02-04, 02-05, 02-07, 02-08 complete; 02-06 gap plan pending)
 Status: In progress
-Last activity: 2026-02-25 — Completed 02-07-PLAN.md (UAT gap closure: add button SVG, hover morph, collapse animation, user info bar)
+Last activity: 2026-02-25 — Completed 02-08-PLAN.md (Fix infinite loading, real-time events, add invite UI)
 
-Progress: [████░░░░░░] 29% (12/38 plans complete)
+Progress: [████░░░░░░] 30% (13/38 plans complete)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 12
-- Average duration: 2.7 min
-- Total execution time: 32 min
+- Total plans completed: 13
+- Average duration: 2.6 min
+- Total execution time: 34 min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-foundation | 6/7 | 24 min | 4 min |
-| 02-servers-and-channels | 6/8 | 12 min | 2 min |
+| 02-servers-and-channels | 7/8 | 14 min | 2 min |
 
 **Recent Trend:**
-- Last 5 plans: 02-02 (2 min), 02-03 (2 min), 02-04 (2 min), 02-05 (4 min), 02-07 (2 min)
-- Trend: Consistent fast delivery; UAT gap closure plans fast (surgical CSS fixes)
+- Last 5 plans: 02-03 (2 min), 02-04 (2 min), 02-05 (4 min), 02-07 (2 min), 02-08 (2 min)
+- Trend: Consistent fast delivery; bug fix + feature plans remain fast with surgical changes
 
 *Updated after each plan completion*
 
@@ -96,6 +96,9 @@ Recent decisions affecting current work:
 - 02-07: grid-rows collapse animation: always mount DndContext content; outer div transitions grid-template-rows 0fr↔1fr; inner div overflow-hidden clips during animation
 - 02-07: ease-out for instant-feeling hover morphs: starts at full speed, no perceptible delay vs ease-in-out
 - 02-07: SVG path icon for button content — immune to font metric centering issues unlike text characters
+- 02-08: TanStack Query exact: true on invalidateQueries — prevents ["servers"] prefix from matching ["servers", id, "channels"] during navigation
+- 02-08: server:subscribe emitted from CreateServerModal immediately after mutateAsync — socket must join room before real-time events can be received
+- 02-08: reconnect_attempt on socket.io (Manager), not socket — fires before reconnect handshake, correct place to update socket.auth
 
 ### Pending Todos
 
@@ -107,6 +110,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-25T21:02:58Z
-Stopped at: Completed 02-07-PLAN.md — UAT gap closure cosmetic fixes
+Last session: 2026-02-25T21:04:53Z
+Stopped at: Completed 02-08-PLAN.md — Fix infinite loading, real-time events, invite UI
 Resume file: None
