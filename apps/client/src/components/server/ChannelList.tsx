@@ -17,6 +17,7 @@
 
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   DndContext,
   closestCenter,
@@ -35,6 +36,8 @@ import {
 import { useChannels, useReorderChannels } from "@/hooks/useChannels";
 import { useServers } from "@/hooks/useServers";
 import { useAuth } from "@/hooks/useAuth";
+import { useSocket } from "@/hooks/useSocket";
+import { api } from "@/lib/api";
 import ChannelItem from "./ChannelItem";
 import InviteModal from "./InviteModal";
 import type { ChannelResponse } from "@tether/shared";
@@ -192,15 +195,35 @@ export default function ChannelList({ serverId }: ChannelListProps) {
     channelId: string;
   }>();
 
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const socket = useSocket();
+  const queryClient = useQueryClient();
   const { data: servers } = useServers();
   const { data: channels, isLoading } = useChannels(serverId);
   const reorderMutation = useReorderChannels(serverId);
 
   const server = servers?.find((s) => s.id === serverId);
+  const isOwner = user?.id === server?.ownerId;
 
   // Dropdown and invite modal state
   const [showDropdown, setShowDropdown] = useState(false);
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+
+  async function handleLeave() {
+    if (!user) return;
+    try {
+      await api.delete(`/api/servers/${serverId}/members/${user.id}`);
+      socket.emit("server:unsubscribe", { serverId });
+      void queryClient.invalidateQueries({ queryKey: ["servers"] });
+      navigate("/");
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Failed to leave server";
+      alert(message);
+    }
+  }
 
   // Local state for optimistic drag-and-drop reorder
   const [localChannels, setLocalChannels] = useState<ChannelResponse[]>([]);
@@ -293,6 +316,53 @@ export default function ChannelList({ serverId }: ChannelListProps) {
                 </svg>
                 Invite People
               </button>
+              <button
+                onClick={() => {
+                  setShowDropdown(false);
+                  navigate(`/servers/${serverId}/settings`);
+                }}
+                className="w-full px-3 py-2 text-left text-sm text-zinc-300 hover:bg-zinc-700/50 transition-colors flex items-center gap-2"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.488.488 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" />
+                </svg>
+                Server Settings
+              </button>
+              <div className="my-1 mx-2 border-t border-zinc-700/50" />
+              {!isOwner && !showLeaveConfirm && (
+                <button
+                  onClick={() => setShowLeaveConfirm(true)}
+                  className="w-full px-3 py-2 text-left text-sm text-red-400 hover:bg-red-600/10 transition-colors flex items-center gap-2"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M10.09 15.59L11.5 17l5-5-5-5-1.41 1.41L12.67 11H3v2h9.67l-2.58 2.59zM19 3H5c-1.11 0-2 .9-2 2v4h2V5h14v14H5v-4H3v4c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z" />
+                  </svg>
+                  Leave Server
+                </button>
+              )}
+              {!isOwner && showLeaveConfirm && (
+                <div className="px-3 py-2 space-y-2">
+                  <p className="text-xs text-zinc-400">Leave this server?</p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        setShowDropdown(false);
+                        setShowLeaveConfirm(false);
+                        void handleLeave();
+                      }}
+                      className="flex-1 py-1.5 rounded text-xs font-medium bg-red-600 hover:bg-red-500 text-white transition-colors"
+                    >
+                      Leave
+                    </button>
+                    <button
+                      onClick={() => setShowLeaveConfirm(false)}
+                      className="flex-1 py-1.5 rounded text-xs font-medium bg-zinc-700 hover:bg-zinc-600 text-zinc-300 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </>
         )}

@@ -16,6 +16,7 @@ import RecoveryKeyPage from "@/pages/auth/RecoveryKeyPage";
 import WelcomePage from "@/pages/WelcomePage";
 import AppShell from "@/pages/AppShell";
 import ServerView from "@/pages/server/ServerView";
+import ServerSettings from "@/pages/server/settings/ServerSettings";
 
 // ============================================================
 // Route guards
@@ -156,6 +157,8 @@ function AppRoutes() {
           {/* Channel selected — chat view (Phase 3) */}
           <Route path="channels/:channelId" element={<ChannelPlaceholder />} />
         </Route>
+        {/* Server settings — full-page, inside AppShell so icon strip stays visible */}
+        <Route path="servers/:serverId/settings" element={<ServerSettings />} />
       </Route>
 
       {/* Invite route — public (auto-redirects to login if not authed) */}
