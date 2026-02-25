@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-02-25)
 
 **Core value:** Messages are zero-knowledge to the server — only authenticated users with their credentials can decrypt message content.
-**Current focus:** Phase 1 — Foundation
+**Current focus:** Phase 2 — Servers and Channels
 
 ## Current Position
 
-Phase: 1 of 7 (Foundation)
-Plan: 5 of 7 in current phase (01-01, 01-02, 01-03, 01-04, 01-05, 01-06 complete)
+Phase: 2 of 7 (Servers and Channels)
+Plan: 1 of 6 in current phase (02-01 complete)
 Status: In progress
-Last activity: 2026-02-25 — Completed 01-05-PLAN.md (Socket.IO server with Redis Streams adapter and JWT auth)
+Last activity: 2026-02-25 — Completed 02-01-PLAN.md (Server REST API and Socket.IO room infrastructure)
 
-Progress: [████░░░░░░] 16% (6/38 plans complete)
+Progress: [████░░░░░░] 18% (7/38 plans complete)
 
 ## Performance Metrics
 
@@ -28,10 +28,11 @@ Progress: [████░░░░░░] 16% (6/38 plans complete)
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-foundation | 6/7 | 24 min | 4 min |
+| 02-servers-and-channels | 1/6 | 2 min | 2 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-02 (5 min), 01-06 (2 min), 01-03 (4 min), 01-04 (5 min), 01-05 (5 min)
-- Trend: Fast infrastructure and auth plans
+- Last 5 plans: 01-06 (2 min), 01-03 (4 min), 01-04 (5 min), 01-05 (5 min), 02-01 (2 min)
+- Trend: Fast infrastructure and API plans
 
 *Updated after each plan completion*
 
@@ -70,6 +71,12 @@ Recent decisions affecting current work:
 - 01-05: Separate Redis client for Socket.IO adapter — avoids blocking other Redis usage (e.g., caching)
 - 01-05: Socket.IO attaches after server.listen() callback — httpServer must be bound before Socket.IO can attach
 - 01-05: Graceful degradation: Socket.IO runs without adapter if Redis unavailable (logs warning, single-instance mode)
+- 02-01: server:created broadcasts to user:{userId} (not server:{serverId}) — creator not yet in server room when broadcast fires
+- 02-01: server:deleted broadcasts before DELETE — cascade removes serverMembers rows; must broadcast first so connected members receive notification
+- 02-01: Owner cannot leave server (400 "Transfer ownership before leaving") — prevents orphaned servers with no owner
+- 02-01: registerConnectionHandlers made async; io.on("connection") caller uses .catch() fire-and-forget to avoid unhandled rejections
+- 02-01: Socket room naming pattern locked: user:{userId} for personal events, server:{serverId} for server-scoped broadcasts
+- 02-01: server:subscribe verifies DB membership before joining room (prevents unauthorized room access via crafted events)
 
 ### Pending Todos
 
@@ -81,6 +88,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-25T17:17:30Z
-Stopped at: Completed 01-05-PLAN.md — Socket.IO server skeleton (JWT auth + Redis Streams adapter)
+Last session: 2026-02-25T19:45:23Z
+Stopped at: Completed 02-01-PLAN.md — Server REST API and Socket.IO room infrastructure
 Resume file: None
