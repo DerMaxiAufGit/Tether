@@ -1,0 +1,137 @@
+version: "3.9"
+
+# Tether Docker Compose
+# Usage: bash scripts/generate-secrets.sh && docker compose up
+#
+# Networks:
+#   internal      — app, postgres, redis, minio (private services)
+#   coturn_external — coturn only (internet-facing TURN relay, isolated from internal)
+#
+# Security: Coturn cannot reach PostgreSQL, Redis, or MinIO by design.
+
+networks:
+  internal:
+    driver: bridge
+  coturn_external:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  minio_data:
+
+services:
+  # ---------------------------------------------------------------------------
+  # PostgreSQL — primary database
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgres:17-alpine
+    networks:
+      - internal
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432" # local dev access — remove in production
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Redis — session store and pub/sub
+  # ---------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    networks:
+      - internal
+    command: redis-server --requirepass ${REDIS_PASSWORD}
+    ports:
+      - "6379:6379" # local dev access — remove in production
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # MinIO — S3-compatible object storage (file attachments)
+  # ---------------------------------------------------------------------------
+  minio:
+    image: minio/minio
+    networks:
+      - internal
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    ports:
+      - "9000:9000" # API
+      - "9001:9001" # Web console
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Coturn — TURN/STUN server for WebRTC (voice/video)
+  #
+  # SECURITY: Coturn is on coturn_external network ONLY.
+  # It cannot reach postgres, redis, or minio by network design.
+  # denied-peer-ip rules in turnserver.conf block RFC 1918 relay abuse.
+  #
+  # Production note: Consider network_mode: host on Linux for best UDP
+  # performance. On Mac/Windows Docker Desktop, host networking does not
+  # work — use port ranges as configured here.
+  # ---------------------------------------------------------------------------
+  coturn:
+    image: coturn/coturn:latest
+    networks:
+      - coturn_external
+    ports:
+      - "3478:3478"           # STUN/TURN TCP
+      - "3478:3478/udp"       # STUN/TURN UDP
+      - "5349:5349"           # TURNS (TLS) TCP
+      - "5349:5349/udp"       # TURNS (TLS) UDP
+      - "49152-49200:49152-49200/udp" # TURN relay range (small for dev)
+    volumes:
+      - ./coturn/turnserver.conf:/etc/coturn/turnserver.conf:ro
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # App — Tether server
+  # ---------------------------------------------------------------------------
+  app:
+    build: .
+    networks:
+      - internal
+    ports:
+      - "3001:3001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      COOKIE_SECRET: ${COOKIE_SECRET}
+      CLIENT_URL: ${CLIENT_URL}
+      PORT: 3001
+    env_file:
+      - .env
+    restart: unless-stopped
