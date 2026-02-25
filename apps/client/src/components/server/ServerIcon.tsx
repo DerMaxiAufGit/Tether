@@ -65,7 +65,7 @@ export default function ServerIcon({ server, isSelected }: ServerIconProps) {
         className={`
           group w-12 h-12 flex items-center justify-center
           text-white font-bold text-sm select-none cursor-pointer
-          transition-all duration-200 shrink-0
+          transition-all duration-150 ease-out shrink-0
           ${isSelected ? "rounded-2xl" : "rounded-full hover:rounded-2xl"}
         `}
         style={{

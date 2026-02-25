@@ -97,7 +97,7 @@ function ChannelGroup({
           w-full flex items-center gap-1 px-2 py-1
           text-zinc-400 hover:text-zinc-300
           transition-colors duration-100
-          group
+          cursor-pointer group
         "
         aria-expanded={!collapsed}
       >
@@ -107,27 +107,33 @@ function ChannelGroup({
         </span>
       </button>
 
-      {/* Channel items */}
-      {!collapsed && (
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragEnd={(event) => onDragEnd(event, groupType)}
-        >
-          <SortableContext
-            items={channels.map((c) => c.id)}
-            strategy={verticalListSortingStrategy}
+      {/* Channel items — animated collapse via grid rows */}
+      <div
+        className={`grid transition-[grid-template-rows] duration-200 ease-out ${
+          collapsed ? "grid-rows-[0fr]" : "grid-rows-[1fr]"
+        }`}
+      >
+        <div className="overflow-hidden">
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={(event) => onDragEnd(event, groupType)}
           >
-            {channels.map((channel) => (
-              <ChannelItem
-                key={channel.id}
-                channel={channel}
-                isSelected={channel.id === selectedChannelId}
-              />
-            ))}
-          </SortableContext>
-        </DndContext>
-      )}
+            <SortableContext
+              items={channels.map((c) => c.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              {channels.map((channel) => (
+                <ChannelItem
+                  key={channel.id}
+                  channel={channel}
+                  isSelected={channel.id === selectedChannelId}
+                />
+              ))}
+            </SortableContext>
+          </DndContext>
+        </div>
+      </div>
     </div>
   );
 }
@@ -145,7 +151,7 @@ function UserInfoBar() {
   const initial = user.displayName[0]?.toUpperCase() ?? "?";
 
   return (
-    <div className="flex items-center gap-2 px-2 py-2 bg-zinc-900/80 border-t border-zinc-700/50">
+    <div className="flex items-center gap-2 px-2 py-2 bg-zinc-900/80 border-t border-zinc-700/50 shrink-0">
       {/* Avatar */}
       <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center shrink-0">
         <span className="text-white text-xs font-bold">{initial}</span>
