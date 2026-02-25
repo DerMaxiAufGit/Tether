@@ -18,7 +18,7 @@ import {
   useCallback,
   type ReactNode,
 } from "react";
-import { setAccessToken, clearAccessToken, api } from "@/lib/api";
+import { setAccessToken, clearAccessToken, silentRefreshSession, api } from "@/lib/api";
 
 // ============================================================
 // Types
@@ -62,32 +62,47 @@ export function AuthProvider({ children }: AuthProviderProps) {
     isLoading: true, // start loading — silent refresh in progress
   });
 
-  // Silent auth check on mount — tries to restore session via refresh cookie
+  // Silent auth check on mount — tries to restore session via refresh cookie.
+  //
+  // Uses silentRefreshSession() from api.ts which deduplicates concurrent
+  // calls at the module level.  This is essential because React StrictMode
+  // double-mounts components in development, and sending two concurrent
+  // refresh requests with the same token triggers the server's replay-attack
+  // detection (which revokes ALL refresh tokens for the user).
+  //
+  // The deduplication ensures only ONE network request is made; both mounts
+  // share the same promise.  The `cancelled` flag ensures only the surviving
+  // mount applies the result to state.
   useEffect(() => {
     let cancelled = false;
 
-    async function silentRefresh() {
+    async function attemptRestore() {
       try {
-        const data = await api.post<{ accessToken: string; user: AuthUser }>(
-          "/api/auth/refresh",
-        );
+        const result = await silentRefreshSession();
+        if (!result) {
+          // No valid refresh cookie — user is not logged in (this is normal)
+          if (!cancelled) {
+            setState({ user: null, isAuthenticated: false, isLoading: false });
+          }
+          return;
+        }
+        // Access token is now set; fetch the full user profile
+        const meData = await api.get<{ user: AuthUser }>("/api/auth/me");
         if (!cancelled) {
-          setAccessToken(data.accessToken);
           setState({
-            user: data.user,
+            user: meData.user,
             isAuthenticated: true,
             isLoading: false,
           });
         }
       } catch {
-        // No valid refresh cookie — user is not logged in (this is normal)
         if (!cancelled) {
           setState({ user: null, isAuthenticated: false, isLoading: false });
         }
       }
     }
 
-    void silentRefresh();
+    void attemptRestore();
 
     return () => {
       cancelled = true;

@@ -2,14 +2,14 @@ import { randomBytes } from "node:crypto";
 import type { FastifyInstance } from "fastify";
 import { eq, and } from "drizzle-orm";
 import { db } from "../../db/client.js";
-import { invites, serverMembers, servers, users } from "../../db/schema.js";
+import { invites, serverMembers, users } from "../../db/schema.js";
 import type { CreateInviteRequest, InviteResponse } from "@tether/shared";
 
 /**
  * Server invite CRUD routes:
  *   GET  /:id/invites           — list invites for a server (member only)
  *   POST /:id/invites           — create invite (member only)
- *   DELETE /:id/invites/:inviteId — revoke invite (owner only)
+ *   DELETE /:id/invites/:inviteId — revoke invite (member only)
  */
 export default async function serverInvitesRoute(fastify: FastifyInstance): Promise<void> {
   // -------------------------------------------------------------------------
@@ -130,7 +130,7 @@ export default async function serverInvitesRoute(fastify: FastifyInstance): Prom
   });
 
   // -------------------------------------------------------------------------
-  // DELETE /:id/invites/:inviteId — revoke an invite (owner only)
+  // DELETE /:id/invites/:inviteId — revoke an invite (member only)
   // -------------------------------------------------------------------------
   fastify.delete<{ Params: { id: string; inviteId: string } }>("/:id/invites/:inviteId", {
     preHandler: [fastify.authenticate],
@@ -138,18 +138,14 @@ export default async function serverInvitesRoute(fastify: FastifyInstance): Prom
       const { id: serverId, inviteId } = request.params;
       const userId = request.user!.id;
 
-      // Verify requesting user is the server owner
-      const [server] = await db
-        .select({ ownerId: servers.ownerId })
-        .from(servers)
-        .where(eq(servers.id, serverId));
+      // Verify requesting user is a member of the server
+      const [membership] = await db
+        .select({ id: serverMembers.id })
+        .from(serverMembers)
+        .where(and(eq(serverMembers.serverId, serverId), eq(serverMembers.userId, userId)));
 
-      if (!server) {
+      if (!membership) {
         return reply.code(404).send({ error: "Server not found" });
-      }
-
-      if (server.ownerId !== userId) {
-        return reply.code(403).send({ error: "Only the server owner can revoke invites" });
       }
 
       // Delete the invite

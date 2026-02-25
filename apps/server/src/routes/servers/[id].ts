@@ -74,6 +74,17 @@ export default async function serverByIdRoute(fastify: FastifyInstance): Promise
       const { id: serverId } = request.params;
       const { name } = request.body;
 
+      // Verify user is a member of the server
+      const [membership] = await db
+        .select({ serverId: serverMembers.serverId })
+        .from(serverMembers)
+        .where(and(eq(serverMembers.serverId, serverId), eq(serverMembers.userId, userId)))
+        .limit(1);
+
+      if (!membership) {
+        return reply.code(404).send({ error: "Server not found" });
+      }
+
       const [existing] = await db
         .select({ id: servers.id, ownerId: servers.ownerId })
         .from(servers)
@@ -82,10 +93,6 @@ export default async function serverByIdRoute(fastify: FastifyInstance): Promise
 
       if (!existing) {
         return reply.code(404).send({ error: "Server not found" });
-      }
-
-      if (existing.ownerId !== userId) {
-        return reply.code(403).send({ error: "Only the server owner can update this server" });
       }
 
       const updateValues: { name?: string; updatedAt: Date } = { updatedAt: new Date() };

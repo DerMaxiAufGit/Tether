@@ -9,7 +9,7 @@
  *   - Up/down arrow buttons for reorder (accessibility alternative to drag-and-drop)
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   useChannels,
   useCreateChannel,
@@ -112,7 +112,7 @@ function ChannelRow({
       ) : (
         <button
           onClick={() => setEditing(true)}
-          className="flex-1 text-left text-sm text-zinc-200 hover:text-zinc-100 truncate"
+          className="flex-1 text-left text-sm text-zinc-200 hover:text-zinc-100 truncate cursor-pointer"
           title="Click to edit name"
         >
           {channel.name}
@@ -124,7 +124,7 @@ function ChannelRow({
         onClick={onMoveUp}
         disabled={!canMoveUp}
         className="
-          p-1 rounded transition-colors
+          p-1 rounded transition-colors cursor-pointer
           text-zinc-500 hover:text-zinc-300 disabled:text-zinc-700 disabled:cursor-not-allowed
         "
         title="Move up"
@@ -138,7 +138,7 @@ function ChannelRow({
         onClick={onMoveDown}
         disabled={!canMoveDown}
         className="
-          p-1 rounded transition-colors
+          p-1 rounded transition-colors cursor-pointer
           text-zinc-500 hover:text-zinc-300 disabled:text-zinc-700 disabled:cursor-not-allowed
         "
         title="Move down"
@@ -154,9 +154,9 @@ function ChannelRow({
         onClick={() => deleteChannel.mutate(channel.id)}
         disabled={deleteChannel.isPending}
         className="
-          p-1 rounded transition-colors
+          p-1 rounded transition-colors cursor-pointer
           text-zinc-500 hover:text-red-400 hover:bg-red-600/10
-          disabled:opacity-50
+          disabled:opacity-50 disabled:cursor-not-allowed
         "
         title={`Delete ${channel.name}`}
         aria-label={`Delete ${channel.name}`}
@@ -181,8 +181,15 @@ export default function ChannelsTab({ serverId }: ChannelsTabProps) {
   const [newName, setNewName] = useState("");
   const [newType, setNewType] = useState<"text" | "voice">("text");
 
-  const textChannels = channels?.filter((c) => c.type === "text") ?? [];
-  const voiceChannels = channels?.filter((c) => c.type === "voice") ?? [];
+  // Local copy for optimistic reorder — updated immediately on arrow click,
+  // then synced back from server data after the mutation refetch.
+  const [localChannels, setLocalChannels] = useState<ChannelResponse[]>([]);
+  useEffect(() => {
+    if (channels) setLocalChannels(channels);
+  }, [channels]);
+
+  const textChannels = localChannels.filter((c) => c.type === "text");
+  const voiceChannels = localChannels.filter((c) => c.type === "voice");
 
   function handleAddChannel(e: React.FormEvent) {
     e.preventDefault();
@@ -210,6 +217,9 @@ export default function ChannelsTab({ serverId }: ChannelsTabProps) {
     const [newText, newVoice] = isTextGroup
       ? [reordered, otherChannels]
       : [otherChannels, reordered];
+
+    // Optimistic update: move the channel immediately without waiting for the round-trip
+    setLocalChannels([...newText, ...newVoice]);
 
     const order = [
       ...newText.map((c, i) => ({ id: c.id, position: i })),
@@ -273,7 +283,7 @@ export default function ChannelsTab({ serverId }: ChannelsTabProps) {
           type="submit"
           disabled={!newName.trim() || createChannel.isPending}
           className="
-            px-4 py-2 rounded-lg text-sm font-medium transition-colors
+            px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer
             bg-cyan-600 hover:bg-cyan-500 disabled:bg-zinc-700 disabled:text-zinc-500 disabled:cursor-not-allowed
             text-white
           "

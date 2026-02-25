@@ -1,5 +1,14 @@
 // Server, channel, and member API response/request types
 
+// ---------------------------------------------------------------------------
+// Permission bits — stored as integer in roles.permissions (text/bigint field)
+// ---------------------------------------------------------------------------
+
+export const PERMISSIONS = {
+  /** Full administrative access: kick members, manage channels, etc. */
+  ADMINISTRATOR: 8,
+} as const;
+
 export const CHANNEL_TYPES = {
   TEXT: "text",
   VOICE: "voice",
@@ -32,6 +41,7 @@ export interface ServerMemberResponse {
   serverId: string;
   userId: string;
   joinedAt: string;
+  isAdmin: boolean;
   user: {
     id: string;
     displayName: string;

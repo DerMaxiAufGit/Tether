@@ -50,6 +50,8 @@ export default function MembersTab({ server }: MembersTabProps) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const isOwner = user?.id === server.ownerId;
+  // Derived after members load
+  let isCurrentUserAdmin = false;
 
   const [search, setSearch] = useState("");
 
@@ -64,6 +66,14 @@ export default function MembersTab({ server }: MembersTabProps) {
       });
     },
   });
+
+  // Check if current user has admin permission in this server
+  if (members && user) {
+    const self = members.find((m) => m.userId === user.id);
+    isCurrentUserAdmin = self?.isAdmin ?? false;
+  }
+
+  const canKick = isOwner || isCurrentUserAdmin;
 
   const filteredMembers = members?.filter((m) =>
     m.user.displayName.toLowerCase().includes(search.toLowerCase()),
@@ -117,6 +127,8 @@ export default function MembersTab({ server }: MembersTabProps) {
             const hue = stringToHue(member.userId);
             const isMemberOwner = member.userId === server.ownerId;
             const isSelf = member.userId === user?.id;
+            // Admins can kick regular members; owners can kick anyone (except self/owner)
+            const canKickThisMember = canKick && !isSelf && !isMemberOwner;
 
             return (
               <div
@@ -146,6 +158,11 @@ export default function MembersTab({ server }: MembersTabProps) {
                         Owner
                       </span>
                     )}
+                    {!isMemberOwner && member.isAdmin && (
+                      <span className="text-xs px-1.5 py-0.5 rounded bg-cyan-600/20 text-cyan-400 font-medium shrink-0">
+                        Admin
+                      </span>
+                    )}
                     {isSelf && (
                       <span className="text-xs text-zinc-500 shrink-0">
                         (you)
@@ -157,15 +174,15 @@ export default function MembersTab({ server }: MembersTabProps) {
                   </p>
                 </div>
 
-                {/* Kick button — owner only, not for self or other owner */}
-                {isOwner && !isSelf && !isMemberOwner && (
+                {/* Kick button — owner or admin, not for self or the server owner */}
+                {canKickThisMember && (
                   <button
                     onClick={() => kickMember.mutate(member.userId)}
                     disabled={kickMember.isPending}
                     className="
-                      p-2 rounded transition-colors
+                      p-2 rounded transition-colors cursor-pointer
                       text-zinc-500 hover:text-red-400 hover:bg-red-600/10
-                      disabled:opacity-50
+                      disabled:opacity-50 disabled:cursor-not-allowed
                     "
                     title={`Kick ${member.user.displayName}`}
                   >

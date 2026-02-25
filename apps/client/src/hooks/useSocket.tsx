@@ -19,6 +19,7 @@ import {
 } from "react";
 import { io, type Socket } from "socket.io-client";
 import { useQueryClient } from "@tanstack/react-query";
+import { useNavigate, useLocation } from "react-router-dom";
 import { getAccessToken } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -47,8 +48,15 @@ interface SocketProviderProps {
 }
 
 export function SocketProvider({ children }: SocketProviderProps) {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const location = useLocation();
+  // Keep a stable ref to location so event handlers don't go stale
+  const locationRef = useRef(location);
+  useEffect(() => {
+    locationRef.current = location;
+  }, [location]);
 
   // Use a ref to hold the socket instance so it persists across renders
   // without triggering re-renders when the socket changes.
@@ -122,12 +130,26 @@ export function SocketProvider({ children }: SocketProviderProps) {
       });
     };
 
-    const onMemberLeft = (data: { serverId: string }) => {
+    const onMemberLeft = (data: { serverId: string; userId: string }) => {
       void queryClient.invalidateQueries({
         queryKey: ["servers", data.serverId, "members"],
       });
       // Also invalidate server list — user may have been kicked
       void queryClient.invalidateQueries({ queryKey: ["servers"] });
+    };
+
+    const onMemberKicked = (data: { serverId: string }) => {
+      // Remove the server from the cache immediately so it disappears from the list
+      queryClient.setQueryData<import("@tether/shared").ServerResponse[]>(
+        ["servers"],
+        (old) => old?.filter((s) => s.id !== data.serverId) ?? [],
+      );
+      // Invalidate to sync with server state
+      void queryClient.invalidateQueries({ queryKey: ["servers"] });
+      // Navigate away if the kicked server is currently active
+      if (locationRef.current.pathname.startsWith(`/servers/${data.serverId}`)) {
+        navigate("/");
+      }
     };
 
     const onChannelCreated = (data: { serverId: string }) => {
@@ -142,10 +164,25 @@ export function SocketProvider({ children }: SocketProviderProps) {
       });
     };
 
-    const onChannelDeleted = (data: { serverId: string }) => {
+    const onChannelReordered = (data: { serverId: string }) => {
       void queryClient.invalidateQueries({
         queryKey: ["servers", data.serverId, "channels"],
       });
+    };
+
+    const onChannelDeleted = (data: { serverId: string; channelId: string }) => {
+      void queryClient.invalidateQueries({
+        queryKey: ["servers", data.serverId, "channels"],
+      });
+      // Navigate away if the deleted channel is currently active
+      const path = locationRef.current.pathname;
+      if (
+        path.startsWith(
+          `/servers/${data.serverId}/channels/${data.channelId}`,
+        )
+      ) {
+        navigate(`/servers/${data.serverId}`);
+      }
     };
 
     socket.on("server:created", onServerCreated);
@@ -153,8 +190,10 @@ export function SocketProvider({ children }: SocketProviderProps) {
     socket.on("server:updated", onServerUpdated);
     socket.on("member:joined", onMemberJoined);
     socket.on("member:left", onMemberLeft);
+    socket.on("member:kicked", onMemberKicked);
     socket.on("channel:created", onChannelCreated);
     socket.on("channel:updated", onChannelUpdated);
+    socket.on("channel:reordered", onChannelReordered);
     socket.on("channel:deleted", onChannelDeleted);
 
     return () => {
@@ -163,11 +202,13 @@ export function SocketProvider({ children }: SocketProviderProps) {
       socket.off("server:updated", onServerUpdated);
       socket.off("member:joined", onMemberJoined);
       socket.off("member:left", onMemberLeft);
+      socket.off("member:kicked", onMemberKicked);
       socket.off("channel:created", onChannelCreated);
       socket.off("channel:updated", onChannelUpdated);
+      socket.off("channel:reordered", onChannelReordered);
       socket.off("channel:deleted", onChannelDeleted);
     };
-  }, [socket, queryClient]);
+  }, [socket, queryClient, navigate, user]);
 
   return (
     <SocketContext.Provider value={socket}>{children}</SocketContext.Provider>

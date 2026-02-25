@@ -75,6 +75,72 @@ async function refreshAccessToken(): Promise<string | null> {
 }
 
 // ============================================================
+// Silent session restore (used by AuthProvider on mount)
+//
+// This is separate from refreshAccessToken because it returns
+// user data alongside the access token (needed by AuthProvider
+// to populate the auth context on session restore).
+//
+// Deduplication is critical: React StrictMode double-mounts
+// components in development, which would fire two concurrent
+// refresh requests with the same cookie.  The server's refresh
+// token rotation treats the second use of a consumed token as
+// a replay attack and revokes ALL tokens for the user —
+// destroying the session on every page load.
+// ============================================================
+
+interface SessionResult {
+  accessToken: string;
+  user: { id: string; email: string; displayName: string };
+}
+
+let _sessionRefreshPromise: Promise<SessionResult | null> | null = null;
+
+/**
+ * Attempt to restore a session via the httpOnly refresh-token cookie.
+ *
+ * Returns { accessToken, user } on success, or null if there is no valid
+ * session.  The request is deduplicated at the module level so that
+ * concurrent callers (e.g. React StrictMode double-mount) share a single
+ * in-flight request instead of racing two requests with the same cookie.
+ *
+ * Note: we intentionally do NOT pass an AbortSignal to the underlying
+ * fetch.  The deduplication already prevents duplicate network requests,
+ * and aborting the shared fetch would break all callers waiting on it.
+ * Instead, callers should check their own AbortSignal after awaiting
+ * to decide whether to apply the result.
+ */
+export async function silentRefreshSession(): Promise<SessionResult | null> {
+  // Deduplicate: if a refresh is already in flight, piggyback on it.
+  if (_sessionRefreshPromise) {
+    return _sessionRefreshPromise;
+  }
+
+  _sessionRefreshPromise = (async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/auth/refresh`, {
+        method: "POST",
+        credentials: "include",
+      });
+
+      if (!res.ok) {
+        return null;
+      }
+
+      const data = (await res.json()) as SessionResult;
+      setAccessToken(data.accessToken);
+      return data;
+    } catch {
+      return null;
+    } finally {
+      _sessionRefreshPromise = null;
+    }
+  })();
+
+  return _sessionRefreshPromise;
+}
+
+// ============================================================
 // Core fetch wrapper
 // ============================================================
 

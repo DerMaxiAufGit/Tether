@@ -1,11 +1,32 @@
 import type { FastifyInstance } from "fastify";
 import { db } from "../../db/client.js";
-import { servers, serverMembers, users } from "../../db/schema.js";
-import { eq, and } from "drizzle-orm";
+import { servers, serverMembers, users, roles, memberRoles } from "../../db/schema.js";
+import { eq, and, inArray, sql } from "drizzle-orm";
+
+const ADMINISTRATOR_BIT = 8n;
 
 /**
- * GET    /api/servers/:id/members       — List all members with user details (member-only)
- * DELETE /api/servers/:id/members/:userId — Leave (self) or kick (owner-only)
+ * Returns the set of serverMember.id values in the given server that have
+ * at least one role with the ADMINISTRATOR permission bit set.
+ */
+async function getAdminMemberIdSet(serverId: string): Promise<Set<string>> {
+  const rows = await db
+    .selectDistinct({ memberId: memberRoles.memberId })
+    .from(memberRoles)
+    .innerJoin(roles, eq(roles.id, memberRoles.roleId))
+    .innerJoin(serverMembers, eq(serverMembers.id, memberRoles.memberId))
+    .where(
+      and(
+        eq(serverMembers.serverId, serverId),
+        sql`(${roles.permissions}::bigint & ${ADMINISTRATOR_BIT}) != 0`,
+      ),
+    );
+  return new Set(rows.map((r) => r.memberId));
+}
+
+/**
+ * GET    /api/servers/:id/members         — List members with user details (member-only)
+ * DELETE /api/servers/:id/members/:userId — Leave (self) or kick (owner or admin)
  */
 export default async function serverMembersRoute(fastify: FastifyInstance): Promise<void> {
   // GET /api/servers/:id/members
@@ -35,7 +56,7 @@ export default async function serverMembersRoute(fastify: FastifyInstance): Prom
         return reply.code(404).send({ error: "Server not found" });
       }
 
-      const members = await db
+      const memberRows = await db
         .select({
           id: serverMembers.id,
           serverId: serverMembers.serverId,
@@ -52,6 +73,13 @@ export default async function serverMembersRoute(fastify: FastifyInstance): Prom
         .from(serverMembers)
         .innerJoin(users, eq(users.id, serverMembers.userId))
         .where(eq(serverMembers.serverId, serverId));
+
+      // Attach isAdmin flag from the roles system
+      const adminIdSet = await getAdminMemberIdSet(serverId);
+      const members = memberRows.map((m) => ({
+        ...m,
+        isAdmin: adminIdSet.has(m.id),
+      }));
 
       return reply.code(200).send({ members });
     },
@@ -98,18 +126,24 @@ export default async function serverMembersRoute(fastify: FastifyInstance): Prom
         return reply.code(404).send({ error: "Server not found" });
       }
 
+      const isOwner = server.ownerId === requesterId;
+
       if (isSelf) {
         // Leave — owner cannot leave without transferring ownership
-        if (server.ownerId === requesterId) {
+        if (isOwner) {
           return reply.code(400).send({ error: "Transfer ownership before leaving" });
         }
       } else {
-        // Kick — only the server owner can kick
-        if (server.ownerId !== requesterId) {
-          return reply.code(403).send({ error: "Only the server owner can kick members" });
+        // Kick — owner can kick anyone; admin can kick non-owners
+        if (!isOwner) {
+          // Check if requester has ADMINISTRATOR permission
+          const adminSet = await getAdminMemberIdSet(serverId);
+          if (!adminSet.has(requesterMembership.id)) {
+            return reply.code(403).send({ error: "Only the server owner or an admin can kick members" });
+          }
         }
 
-        // Cannot kick the owner
+        // Cannot kick the server owner
         if (server.ownerId === targetUserId) {
           return reply.code(400).send({ error: "Cannot kick the server owner" });
         }
@@ -131,10 +165,18 @@ export default async function serverMembersRoute(fastify: FastifyInstance): Prom
         .delete(serverMembers)
         .where(and(eq(serverMembers.serverId, serverId), eq(serverMembers.userId, targetUserId)));
 
-      // Notify all remaining members in the server room
+      // Notify remaining members in the server room (member list update)
       fastify.io
         .to(`server:${serverId}`)
         .emit("member:left", { serverId, userId: targetUserId });
+
+      // If this was a kick (not a self-leave), notify the kicked user's personal room
+      // so they can react even if they have multiple tabs/connections
+      if (!isSelf) {
+        fastify.io
+          .to(`user:${targetUserId}`)
+          .emit("member:kicked", { serverId });
+      }
 
       return reply.code(200).send({ ok: true });
     },

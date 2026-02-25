@@ -16,9 +16,11 @@ export function useCreateServer() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: CreateServerRequest) =>
-      api.post<ServerResponse>("/api/servers", data),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["servers"], exact: true });
+      api.post<{ server: ServerResponse }>("/api/servers", data).then((res) => res.server),
+    onSuccess: (newServer) => {
+      queryClient.setQueryData<ServerResponse[]>(["servers"], (old) =>
+        old ? [...old, newServer] : [newServer]
+      );
     },
   });
 }

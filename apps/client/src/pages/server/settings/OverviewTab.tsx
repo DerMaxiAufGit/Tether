@@ -1,8 +1,9 @@
 /**
  * OverviewTab.tsx — Server name editing and danger zone (delete server)
  *
- * Owner-only features:
+ * All members:
  *   - Edit server name with save button
+ * Owner-only:
  *   - Delete server with name-confirmation dialog
  */
 
@@ -103,25 +104,22 @@ export default function OverviewTab({ server }: OverviewTabProps) {
             value={name}
             onChange={(e) => setName(e.target.value)}
             maxLength={100}
-            disabled={!isOwner}
             className="
               w-full max-w-md px-3 py-2 rounded-lg
               bg-zinc-900 border border-zinc-700
               text-zinc-100 placeholder-zinc-500
               focus:outline-none focus:border-cyan-500/60 focus:ring-1 focus:ring-cyan-500/30
               transition-colors text-sm
-              disabled:opacity-50 disabled:cursor-not-allowed
             "
           />
         </div>
 
-        {isOwner && (
-          <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3">
             <button
               type="submit"
               disabled={!hasChanges || updateServer.isPending}
               className="
-                px-4 py-2 rounded-lg text-sm font-medium transition-colors
+                px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer
                 bg-cyan-600 hover:bg-cyan-500 disabled:bg-zinc-700 disabled:text-zinc-500 disabled:cursor-not-allowed
                 text-white
               "
@@ -139,7 +137,6 @@ export default function OverviewTab({ server }: OverviewTabProps) {
               </span>
             )}
           </div>
-        )}
       </form>
 
       {/* Danger zone — owner only */}
@@ -155,7 +152,7 @@ export default function OverviewTab({ server }: OverviewTabProps) {
             <button
               onClick={() => setShowDeleteConfirm(true)}
               className="
-                px-4 py-2 rounded-lg text-sm font-medium transition-colors
+                px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer
                 bg-red-600 hover:bg-red-500 text-white
               "
             >
@@ -189,7 +186,7 @@ export default function OverviewTab({ server }: OverviewTabProps) {
                     deleteServer.isPending
                   }
                   className="
-                    px-4 py-2 rounded-lg text-sm font-medium transition-colors
+                    px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer
                     bg-red-600 hover:bg-red-500 disabled:bg-zinc-700 disabled:text-zinc-500 disabled:cursor-not-allowed
                     text-white
                   "
@@ -203,7 +200,7 @@ export default function OverviewTab({ server }: OverviewTabProps) {
                     setShowDeleteConfirm(false);
                     setDeleteConfirmName("");
                   }}
-                  className="px-4 py-2 rounded-lg text-sm font-medium text-zinc-400 hover:text-zinc-200 transition-colors"
+                  className="px-4 py-2 rounded-lg text-sm font-medium text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>

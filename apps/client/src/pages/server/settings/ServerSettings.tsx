@@ -129,7 +129,7 @@ export default function ServerSettings() {
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={`
-                w-full text-left px-3 py-2 rounded-md text-sm font-medium transition-colors
+                w-full text-left px-3 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer
                 ${activeTab === tab.id
                   ? "bg-zinc-700/60 text-zinc-100"
                   : "text-zinc-400 hover:bg-zinc-800 hover:text-zinc-300"
@@ -147,7 +147,7 @@ export default function ServerSettings() {
             {!showLeaveConfirm ? (
               <button
                 onClick={() => setShowLeaveConfirm(true)}
-                className="w-full text-left px-3 py-2 rounded-md text-sm font-medium text-red-400 hover:bg-red-600/10 transition-colors"
+                className="w-full text-left px-3 py-2 rounded-md text-sm font-medium text-red-400 hover:bg-red-600/10 transition-colors cursor-pointer"
               >
                 Leave Server
               </button>
@@ -163,13 +163,13 @@ export default function ServerSettings() {
                 <div className="flex gap-2">
                   <button
                     onClick={() => void handleLeave()}
-                    className="flex-1 py-1.5 rounded text-xs font-medium bg-red-600 hover:bg-red-500 text-white transition-colors"
+                    className="flex-1 py-1.5 rounded text-xs font-medium bg-red-600 hover:bg-red-500 text-white transition-colors cursor-pointer"
                   >
                     Leave
                   </button>
                   <button
                     onClick={() => setShowLeaveConfirm(false)}
-                    className="flex-1 py-1.5 rounded text-xs font-medium bg-zinc-700 hover:bg-zinc-600 text-zinc-300 transition-colors"
+                    className="flex-1 py-1.5 rounded text-xs font-medium bg-zinc-700 hover:bg-zinc-600 text-zinc-300 transition-colors cursor-pointer"
                   >
                     Cancel
                   </button>
@@ -190,7 +190,7 @@ export default function ServerSettings() {
             w-9 h-9 flex items-center justify-center
             rounded-full border border-zinc-600
             text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700
-            transition-colors
+            transition-colors cursor-pointer
           "
           aria-label="Close settings"
           title="Close"

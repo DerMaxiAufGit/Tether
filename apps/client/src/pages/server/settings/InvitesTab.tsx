@@ -11,7 +11,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-import { useAuth } from "@/hooks/useAuth";
 import type { ServerResponse, InviteResponse } from "@tether/shared";
 
 // ============================================================
@@ -73,9 +72,7 @@ interface InvitesTabProps {
 // ============================================================
 
 export default function InvitesTab({ server }: InvitesTabProps) {
-  const { user } = useAuth();
   const queryClient = useQueryClient();
-  const isOwner = user?.id === server.ownerId;
 
   // Create invite form state
   const [expiresIn, setExpiresIn] = useState<number | null>(86400);
@@ -196,8 +193,8 @@ export default function InvitesTab({ server }: InvitesTabProps) {
             onClick={handleGenerate}
             disabled={createInvite.isPending}
             className="
-              px-4 py-2 rounded-lg text-sm font-medium transition-colors
-              bg-cyan-600 hover:bg-cyan-500 disabled:bg-zinc-700 disabled:text-zinc-500
+              px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer
+              bg-cyan-600 hover:bg-cyan-500 disabled:bg-zinc-700 disabled:text-zinc-500 disabled:cursor-not-allowed
               text-white
             "
           >
@@ -265,7 +262,7 @@ export default function InvitesTab({ server }: InvitesTabProps) {
                 <button
                   onClick={() => void handleCopy(invite)}
                   className={`
-                    px-3 py-1 rounded text-xs font-medium transition-colors shrink-0
+                    px-3 py-1 rounded text-xs font-medium transition-colors shrink-0 cursor-pointer
                     ${copiedId === invite.id
                       ? "bg-green-600 text-white"
                       : "bg-zinc-700 hover:bg-zinc-600 text-zinc-300"
@@ -275,20 +272,18 @@ export default function InvitesTab({ server }: InvitesTabProps) {
                   {copiedId === invite.id ? "Copied!" : "Copy Link"}
                 </button>
 
-                {/* Revoke button — owner only */}
-                {isOwner && (
-                  <button
-                    onClick={() => revokeInvite.mutate(invite.id)}
-                    disabled={revokeInvite.isPending}
-                    className="
-                      px-3 py-1 rounded text-xs font-medium transition-colors shrink-0
-                      bg-red-600/20 hover:bg-red-600/40 text-red-400
-                      disabled:opacity-50
-                    "
-                  >
-                    Revoke
-                  </button>
-                )}
+                {/* Revoke button */}
+                <button
+                  onClick={() => revokeInvite.mutate(invite.id)}
+                  disabled={revokeInvite.isPending}
+                  className="
+                    px-3 py-1 rounded text-xs font-medium transition-colors shrink-0 cursor-pointer
+                    bg-red-600/20 hover:bg-red-600/40 text-red-400
+                    disabled:opacity-50 disabled:cursor-not-allowed
+                  "
+                >
+                  Revoke
+                </button>
               </div>
             ))}
           </div>

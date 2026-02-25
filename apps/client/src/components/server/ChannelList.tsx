@@ -169,7 +169,7 @@ function UserInfoBar() {
       {/* Settings gear */}
       <button
         onClick={() => navigate("/change-password")}
-        className="text-zinc-400 hover:text-zinc-200 transition-colors p-1 rounded"
+        className="text-zinc-400 hover:text-zinc-200 transition-colors p-1 rounded cursor-pointer"
         aria-label="User settings"
         title="Settings"
       >

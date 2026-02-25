@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { changePassword } from "@/lib/crypto";
 import { api } from "@/lib/api";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth, type AuthUser } from "@/hooks/useAuth";
 
 const CRYPTO_STEPS = ["deriving", "decrypting", "re-encrypting", "done"];
 
@@ -55,7 +55,7 @@ function validate(fields: {
 
 export default function ChangePasswordPage() {
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const { login } = useAuth();
 
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -95,25 +95,23 @@ export default function ChangePasswordPage() {
         (step) => setCurrentStep(step),
       );
 
-      // Step 3: POST new key material to server
-      await api.post("/api/auth/change-password", {
-        oldAuthKey: cryptoResult.oldAuthKey,
-        newAuthKey: cryptoResult.newAuthKey,
-        newSalt: cryptoResult.newSalt,
-        x25519EncryptedPrivateKey: cryptoResult.x25519EncryptedPrivateKey,
-        x25519KeyIv: cryptoResult.x25519KeyIv,
-        ed25519EncryptedPrivateKey: cryptoResult.ed25519EncryptedPrivateKey,
-        ed25519KeyIv: cryptoResult.ed25519KeyIv,
-      });
+      // Step 3: POST new key material to server — returns new session tokens
+      const session = await api.post<{ accessToken: string; user: AuthUser }>(
+        "/api/auth/change-password",
+        {
+          oldAuthKey: cryptoResult.oldAuthKey,
+          newAuthKey: cryptoResult.newAuthKey,
+          newSalt: cryptoResult.newSalt,
+          x25519EncryptedPrivateKey: cryptoResult.x25519EncryptedPrivateKey,
+          x25519KeyIv: cryptoResult.x25519KeyIv,
+          ed25519EncryptedPrivateKey: cryptoResult.ed25519EncryptedPrivateKey,
+          ed25519KeyIv: cryptoResult.ed25519KeyIv,
+        },
+      );
 
-      // Step 4: Navigate FIRST (leaves ProtectedRoute before auth state clears),
-      // then clear auth state. This prevents ProtectedRoute from saving
-      // "/change-password" as the return-to location.
-      navigate("/login", {
-        replace: true,
-        state: { message: "Password changed successfully. Please sign in with your new password." },
-      });
-      await logout();
+      // Step 4: Re-authenticate with new tokens and navigate home
+      login(session.accessToken, session.user);
+      navigate("/", { replace: true });
     } catch (err) {
       const error = err as Error & { status?: number };
       if (
@@ -148,15 +146,15 @@ export default function ChangePasswordPage() {
           <h2 className="text-2xl font-bold text-white">Change password</h2>
           <p className="text-zinc-400 text-sm">
             Your private keys will be re-encrypted with your new password.
-            You'll be signed out on all devices.
+            You'll be signed out on all other devices.
           </p>
         </div>
 
         {/* Warning */}
         <div className="bg-amber-400/5 border border-amber-400/20 rounded-lg p-3">
           <p className="text-amber-300 text-xs leading-relaxed">
-            <strong>Note:</strong> This will sign you out of all devices. Make
-            sure you remember your new password — it encrypts your private keys.
+            <strong>Note:</strong> This will sign you out of all other devices.
+            Make sure you remember your new password — it encrypts your private keys.
           </p>
         </div>
 

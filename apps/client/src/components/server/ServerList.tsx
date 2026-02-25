@@ -2,11 +2,10 @@
  * ServerList.tsx — Vertical server icon strip (the Discord-style left rail)
  *
  * Layout (top to bottom):
- *   1. Tether brand icon (links to home)
- *   2. Home/DM button (navigates to /)
- *   3. Thin horizontal divider
- *   4. Scrollable server icon list (hidden scrollbar)
- *   5. "+" Add server button (opens CreateServerModal)
+ *   1. Home button (shows brand icon at rest, home icon on hover; navigates to /)
+ *   2. Thin horizontal divider
+ *   3. Scrollable server icon list (hidden scrollbar)
+ *   4. "+" Add server button (opens CreateServerModal)
  *
  * Width: 72px fixed.
  * Background: zinc-900.
@@ -38,24 +37,46 @@ function HomeButton({ isActive }: { isActive: boolean }) {
       <button
         onClick={() => navigate("/")}
         className={`
-          w-12 h-12 flex items-center justify-center
+          group w-12 h-12 flex items-center justify-center
           bg-zinc-800 hover:bg-cyan-600
-          transition-all duration-200 shrink-0
-          ${isActive ? "rounded-2xl bg-cyan-600" : "rounded-full hover:rounded-2xl"}
+          transition-all duration-200 shrink-0 cursor-pointer
+          ${isActive ? "rounded-2xl bg-cyan-600" : "rounded-[50%] hover:rounded-2xl"}
         `}
         aria-label="Home"
         aria-current={isActive ? "page" : undefined}
       >
-        {/* House icon */}
-        <svg
-          width="22"
-          height="22"
-          viewBox="0 0 24 24"
-          fill="currentColor"
-          className="text-zinc-300"
-        >
-          <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
-        </svg>
+        {/* Icon container — both icons stacked, cross-fade on hover */}
+        <span className="relative w-7 h-7">
+          {/* Brand icon — visible at rest, fades out on hover / when active */}
+          <img
+            src="/assets/tether-icon.svg"
+            alt=""
+            draggable={false}
+            className={`
+              absolute inset-0 w-full h-full object-contain
+              transition-[opacity,transform] duration-150
+              ${isActive
+                ? "opacity-0 scale-75"
+                : "opacity-100 scale-100 group-hover:opacity-0 group-hover:scale-75"}
+            `}
+          />
+          {/* Home icon — hidden at rest, fades in on hover / when active */}
+          <svg
+            width="22"
+            height="22"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            className={`
+              absolute inset-0 m-auto w-[22px] h-[22px] text-zinc-300
+              transition-[opacity,transform] duration-150
+              ${isActive
+                ? "opacity-100 scale-100"
+                : "opacity-0 scale-75 group-hover:opacity-100 group-hover:scale-100"}
+            `}
+          >
+            <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
+          </svg>
+        </span>
       </button>
     </div>
   );
@@ -71,11 +92,11 @@ function AddServerButton({ onClick }: { onClick: () => void }) {
       onClick={onClick}
       className="
         w-12 h-12 flex items-center justify-center
-        rounded-full hover:rounded-2xl
+        rounded-[50%] hover:rounded-2xl
         bg-zinc-800 hover:bg-green-600
         border-2 border-dashed border-zinc-600 hover:border-transparent
         text-green-400 hover:text-white
-        transition-all duration-200 shrink-0
+        transition-all duration-200 shrink-0 cursor-pointer
       "
       title="Add a Server"
       aria-label="Add a Server"
@@ -109,17 +130,7 @@ export default function ServerList() {
         "
         aria-label="Servers"
       >
-        {/* Brand icon */}
-        <div className="w-12 h-12 rounded-2xl bg-cyan-400/10 border border-cyan-400/20 flex items-center justify-center shrink-0 mb-1">
-          <img
-            src="/assets/tether-icon.svg"
-            alt="Tether"
-            className="w-7 h-7"
-            draggable={false}
-          />
-        </div>
-
-        {/* Home button */}
+        {/* Home button — shows brand icon at rest, home icon on hover */}
         <HomeButton isActive={isHome} />
 
         {/* Divider */}

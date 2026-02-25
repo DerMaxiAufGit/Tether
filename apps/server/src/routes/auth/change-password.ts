@@ -1,9 +1,11 @@
+import { randomUUID } from "node:crypto";
 import type { FastifyInstance } from "fastify";
 import * as argon2 from "argon2";
 import { db } from "../../db/client.js";
 import { users, refreshTokens } from "../../db/schema.js";
 import { eq } from "drizzle-orm";
 import { sql } from "drizzle-orm";
+import { signAccessToken, signRefreshToken } from "../../lib/jwt.js";
 import type { AuthChangePasswordRequest } from "@tether/shared";
 
 export default async function changePasswordRoute(fastify: FastifyInstance): Promise<void> {
@@ -44,15 +46,20 @@ export default async function changePasswordRoute(fastify: FastifyInstance): Pro
         ed25519KeyIv,
       } = request.body;
 
+      let accessToken: string;
+      let refreshToken: string;
+      let userEmail: string;
+      let userDisplayName: string;
+
       try {
         await db.transaction(async (tx) => {
           // SELECT FOR UPDATE on user row — prevent concurrent password changes
           const rows = await tx.execute(
-            sql`SELECT id, auth_key_hash FROM users WHERE id = ${userId} FOR UPDATE`
+            sql`SELECT id, auth_key_hash, email, display_name FROM users WHERE id = ${userId} FOR UPDATE`
           );
 
           // postgres.js RowList extends the array directly — index 0 is the first row
-          const user = (rows as unknown as Array<{ id: string; auth_key_hash: string }>)[0];
+          const user = (rows as unknown as Array<{ id: string; auth_key_hash: string; email: string; display_name: string }>)[0];
 
           if (!user) {
             throw Object.assign(new Error("User not found"), { statusCode: 404 });
@@ -96,8 +103,23 @@ export default async function changePasswordRoute(fastify: FastifyInstance): Pro
             })
             .where(eq(users.id, userId));
 
-          // Revoke all refresh tokens — force re-login on all devices
+          // Revoke all refresh tokens — force re-login on other devices
           await tx.delete(refreshTokens).where(eq(refreshTokens.userId, userId));
+
+          // Create a new session for the current device
+          const jti = randomUUID();
+          const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+          await tx.insert(refreshTokens).values({
+            userId,
+            jti,
+            expiresAt,
+          });
+
+          accessToken = await signAccessToken(userId);
+          refreshToken = await signRefreshToken(userId, jti);
+          userEmail = user.email;
+          userDisplayName = user.display_name;
         });
       } catch (err) {
         const error = err as Error & { statusCode?: number };
@@ -110,9 +132,23 @@ export default async function changePasswordRoute(fastify: FastifyInstance): Pro
         throw err;
       }
 
+      // Set refresh cookie for the new session
+      const isProduction = process.env.NODE_ENV === "production";
+      reply.setCookie("refreshToken", refreshToken!, {
+        httpOnly: true,
+        sameSite: "lax",
+        secure: isProduction,
+        path: "/api/auth/refresh",
+        maxAge: 7 * 24 * 60 * 60,
+      });
+
       return reply.code(200).send({
-        success: true,
-        message: "Password changed. Please log in again.",
+        accessToken: accessToken!,
+        user: {
+          id: userId,
+          email: userEmail!,
+          displayName: userDisplayName!,
+        },
       });
     },
   });
