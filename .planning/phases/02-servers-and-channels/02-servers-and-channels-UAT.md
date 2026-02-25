@@ -1,9 +1,9 @@
 ---
-status: diagnosed
+status: complete
 phase: 02-servers-and-channels
-source: 02-01-SUMMARY.md, 02-02-SUMMARY.md, 02-03-SUMMARY.md, 02-04-SUMMARY.md, 02-05-SUMMARY.md
-started: 2026-02-25T20:15:00Z
-updated: 2026-02-25T20:25:00Z
+source: 02-05-SUMMARY.md, 02-06-PLAN.md, 02-07-SUMMARY.md, 02-08-SUMMARY.md
+started: 2026-02-25T21:30:00Z
+updated: 2026-02-25T21:45:00Z
 ---
 
 ## Current Test
@@ -12,145 +12,82 @@ updated: 2026-02-25T20:25:00Z
 
 ## Tests
 
-### 1. App Shell Layout
-expected: After login, the screen shows a 72px server icon strip on the far left with the Tether brand icon at top, a home button, a horizontal divider, and a "+" add button. The rest of the screen is the main content area.
-result: issue
-reported: "the + in the circle at the bottom is off center. and the circle with the plus should be below the servers that a user is member of, if there are any."
-severity: cosmetic
-
-### 2. Create a Server
-expected: Clicking the "+" add button opens a modal (CreateServerModal) with Create and Join tabs. In the Create tab, entering a server name and submitting creates the server. A new server icon with colored initials appears in the server strip.
-result: issue
-reported: "after creating a server the server bar is infinitely loading. only after switching to the main home menu and back to the server, it loads."
-severity: major
-
-### 3. Server Selection
-expected: Clicking a server icon morphs it from a circle to a rounded square shape with a left pill indicator appearing. A channel panel (w-60) opens to the right of the strip, showing the server name in the header.
-result: issue
-reported: "it does. also the icon morphs when hovering. but when hovering it has a delay until it starts morphing. remove the delay, so that it instantly morphs on hover."
-severity: cosmetic
-
-### 4. Default Channels
-expected: A newly created server shows a "general" text channel (with # icon) under a "Text Channels" group and a "General" voice channel (with speaker icon) under a "Voice Channels" group.
+### 1. Create a Server
+expected: Click the "+" button in the server strip. A modal opens with Create/Join tabs. Enter a server name and submit. The modal closes, a new server icon with colored initials appears in the strip, and the channel panel loads immediately showing "general" text channel and "General" voice channel. No infinite loading.
 result: pass
 
-### 5. Channel Click Navigation
-expected: Clicking the "general" text channel highlights/selects the row and the URL updates to /servers/:serverId/channels/:channelId.
+### 2. Add Button Centering & Position
+expected: The "+" add button sits below your server icons in the strip (not pinned at the bottom). The plus icon is perfectly centered in its circle (SVG icon, not text).
 result: pass
 
-### 6. Collapsible Channel Groups
-expected: Clicking the "Text Channels" or "Voice Channels" group header collapses the channels in that group (hides them). Clicking again expands them back.
-result: issue
-reported: "make an animation that the channels move into the category when collapsing. make the cursor a pointer when hovering categorys."
-severity: cosmetic
+### 3. Server Icon Hover & Selection
+expected: Hovering a server icon morphs it from circle to rounded-square instantly (no delay). Clicking it shows a left pill indicator and opens the channel panel.
+result: pass
 
-### 7. User Info Bar
-expected: At the bottom of the channel list panel, the current user's display name is shown.
-result: issue
-reported: "nope, nothing there."
-severity: major
+### 4. Channel Collapse Animation
+expected: Clicking "Text Channels" or "Voice Channels" group header collapses channels with a smooth slide animation. The cursor is a pointer when hovering the header.
+result: pass
 
-### 8. Join Server via Invite URL
-expected: Navigating to /invite/:code (with a valid invite code) shows a server preview with server name and member count. Clicking Join (while authenticated) navigates to the server view. If not authenticated, redirects to login first, then back to invite page.
-result: skipped
-reason: No invite creation UI exists yet — will test after implementing invite UI
+### 5. User Info Bar
+expected: At the bottom of the channel panel, the current user's display name is visible (not squashed or hidden).
+result: pass
 
-### 9. CreateServerModal Join Tab
-expected: In the CreateServerModal, switching to the Join tab allows pasting an invite URL or code. Submitting navigates to the invite page which handles the join flow.
-result: skipped
-reason: No invite creation UI exists yet — will test after implementing invite UI
+### 6. Real-Time Server Events
+expected: Open a second browser tab. Create a new server in the second tab. The new server icon appears in the first tab's server strip without a page refresh.
+result: pass
 
-### 10. Real-Time Server Events
-expected: Opening a second browser tab, creating a new server in that tab causes the new server icon to appear in the first tab's server strip without a page refresh (via Socket.IO server:created event).
-result: issue
-reported: "nope, nothing happens until a refresh"
-severity: major
+### 7. Server Header Dropdown
+expected: Clicking the server name at the top of the channel panel opens a dropdown with "Invite People", "Server Settings", and "Leave Server" options.
+result: pass
+
+### 8. Quick Invite Modal
+expected: Clicking "Invite People" from the dropdown opens a modal that auto-generates an invite link. The link is shown in a copyable input with a "Copy" button that shows "Copied!" feedback.
+result: pass
+
+### 9. Join via Invite Link
+expected: Copy the invite link. Open in another browser/incognito. If not logged in, redirects to login first then back to the invite page. The invite page shows a server preview with name. Clicking Join adds you to the server and navigates to the server view.
+result: pass
+
+### 10. Server Settings Page
+expected: Clicking "Server Settings" from the dropdown opens a full-page settings view with sidebar tabs: Overview, Invites, Members, Channels. An "X" button in the corner closes settings and returns to the server.
+result: pass
+
+### 11. Edit Server Name
+expected: In the Overview tab, the server name is pre-filled in an input. Changing it and clicking "Save Changes" updates the name. The updated name reflects in the channel panel header and server icon tooltip.
+result: pass
+
+### 12. Invite Management
+expected: In the Invites tab, you can create an invite with expiry and max-use options. Active invites appear in a list with code, uses, expiry info, "Copy Link" and "Revoke" buttons. Revoking removes the invite from the list.
+result: pass
+
+### 13. Members Tab
+expected: The Members tab shows a searchable list of server members with colored initial avatars and display names. The owner has a badge. Owner can see a "Kick" button next to other members.
+result: pass
+
+### 14. Toggleable Member List Panel
+expected: In the server view, clicking a people icon in the content header bar toggles a member list panel on the right side showing server members with avatars and names.
+result: pass
+
+### 15. Channel Create & Delete
+expected: In the Channels tab of settings, you can add a new channel (name + type). The new channel appears in the sidebar channel list. Deleting a channel removes it from both settings and sidebar.
+result: pass
+
+### 16. Leave Server
+expected: Clicking "Leave Server" (from dropdown or settings sidebar) shows a confirmation dialog. Confirming removes you from the server and navigates to home. The server disappears from your server strip.
+result: pass
+
+### 17. Delete Server
+expected: In Overview tab's danger zone, clicking "Delete Server" requires typing the server name exactly. After confirming, the server is deleted, you're redirected to home, and the server disappears from all connected clients.
+result: pass
 
 ## Summary
 
-total: 10
-passed: 2
-issues: 6
+total: 17
+passed: 17
+issues: 0
 pending: 0
-skipped: 2
+skipped: 0
+
 ## Gaps
 
-- truth: "The + add button is centered in its circle and positioned below the user's server icons in the strip"
-  status: failed
-  reason: "User reported: the + in the circle at the bottom is off center. and the circle with the plus should be below the servers that a user is member of, if there are any."
-  severity: cosmetic
-  test: 1
-  root_cause: "(1) '+' is a raw text character — font metrics cause visual offset even with flex centering. (2) AddServerButton is a sibling of the scroll container, not inside it — pinned at bottom instead of flowing after server icons."
-  artifacts:
-    - path: "apps/client/src/components/server/ServerList.tsx"
-      issue: "Line 83: bare '+' text node with text-2xl font-light; Lines 156-158: AddServerButton outside scrollable div"
-  missing:
-    - "Replace '+' text with an SVG icon for precise centering"
-    - "Move AddServerButton inside the scrollable div (lines 127-153) as its last child"
-  debug_session: ""
-- truth: "Server icon morph on hover starts instantly without delay"
-  status: failed
-  reason: "User reported: it does. also the icon morphs when hovering. but when hovering it has a delay until it starts morphing. remove the delay, so that it instantly morphs on hover."
-  severity: cosmetic
-  test: 3
-  root_cause: "transition-all duration-200 uses default ease-in-out curve (cubic-bezier(0.4, 0, 0.2, 1)) which starts slow — first ~40-60ms imperceptible, reads as a delay."
-  artifacts:
-    - path: "apps/client/src/components/server/ServerIcon.tsx"
-      issue: "Line 68: transition-all duration-200 with default ease-in-out"
-  missing:
-    - "Change to duration-150 ease-out — ease-out starts at full speed, feels instant"
-  debug_session: ""
-- truth: "Collapsible channel groups animate channels sliding into the header when collapsing, and cursor shows pointer on hover over category headers"
-  status: failed
-  reason: "User reported: make an animation that the channels move into the category when collapsing. make the cursor a pointer when hovering categorys."
-  severity: cosmetic
-  test: 6
-  root_cause: "(1) Plain conditional render {!collapsed && (...)} mounts/unmounts instantly — no transition possible. (2) Button missing cursor-pointer class."
-  artifacts:
-    - path: "apps/client/src/components/server/ChannelList.tsx"
-      issue: "Lines 94-108: button missing cursor-pointer; Lines 110-130: conditional render with no animation"
-  missing:
-    - "Add cursor-pointer to group header button"
-    - "Replace conditional render with grid-rows-[1fr]/grid-rows-[0fr] technique for animated collapse"
-  debug_session: ""
-- truth: "User info bar at bottom of channel list panel shows current user's display name"
-  status: failed
-  reason: "User reported: nope, nothing there."
-  severity: major
-  test: 7
-  root_cause: "UserInfoBar div missing shrink-0 class — flex-1 scroll area above claims all space, flex algorithm squashes UserInfoBar to 0px height."
-  artifacts:
-    - path: "apps/client/src/components/server/ChannelList.tsx"
-      issue: "Line 148: UserInfoBar root div missing shrink-0"
-  missing:
-    - "Add shrink-0 to UserInfoBar div className"
-  debug_session: ".planning/debug/user-info-bar-not-visible.md"
-- truth: "Creating a server in another tab causes the server icon to appear in the first tab without refresh via Socket.IO"
-  status: failed
-  reason: "User reported: nope, nothing happens until a refresh"
-  severity: major
-  test: 10
-  root_cause: "(1) No server:subscribe emitted after server creation — socket never joins new server room. (2) socket.auth.token set once at connect, never refreshed on reconnect — expired tokens cause silent disconnect."
-  artifacts:
-    - path: "apps/client/src/components/server/CreateServerModal.tsx"
-      issue: "Lines 68-70: no socket.emit('server:subscribe') after creation"
-    - path: "apps/client/src/hooks/useSocket.tsx"
-      issue: "Lines 81-83: socket.auth.token set once, no reconnect_attempt handler"
-  missing:
-    - "Emit server:subscribe in CreateServerModal after mutateAsync succeeds"
-    - "Add reconnect_attempt handler in useSocket.tsx to refresh token before reconnect"
-  debug_session: ".planning/debug/server-created-no-realtime.md"
-- truth: "After creating a server, the channel panel loads immediately without needing to navigate away and back"
-  status: failed
-  reason: "User reported: after creating a server the server bar is infinitely loading. only after switching to the main home menu and back to the server, it loads."
-  severity: major
-  test: 2
-  root_cause: "invalidateQueries({ queryKey: ['servers'] }) in useCreateServer.onSuccess uses prefix matching — inadvertently invalidates ['servers', serverId, 'channels'] at exact moment ChannelList mounts, causing isLoading to stay true."
-  artifacts:
-    - path: "apps/client/src/hooks/useServers.ts"
-      issue: "Line 21: invalidateQueries missing exact: true"
-    - path: "apps/client/src/components/server/CreateServerModal.tsx"
-      issue: "Lines 68-70: navigate in same tick as onSuccess invalidation creates race"
-  missing:
-    - "Add exact: true to invalidateQueries({ queryKey: ['servers'], exact: true })"
-  debug_session: ""
+[none yet]
