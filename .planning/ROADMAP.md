@@ -32,16 +32,16 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. User session is maintained via JWT access + refresh tokens that auto-refresh transparently without requiring re-login
   4. User can change their password and the private key blob is atomically re-encrypted with the new derived key — old blobs are not left on disk
   5. `docker compose up` starts all services (app, PostgreSQL, Redis, Coturn, MinIO) with health checks; Coturn is on an isolated network that cannot reach internal services
-**Plans**: TBD
+**Plans**: 7 plans
 
 Plans:
-- [ ] 01-01: Monorepo scaffold (pnpm workspaces, packages/shared types, packages/server, packages/client, Turborepo config, ESLint/Prettier, Vitest)
-- [ ] 01-02: PostgreSQL schema (users, servers, channels, messages, message_recipient_keys, server_members, roles, invites — all ciphertext fields with epoch/seq/alg/iv from day one)
-- [ ] 01-03: Client-side crypto layer (PBKDF2/HKDF dual-key derivation, X25519/Ed25519 keypair generation, AES-256-GCM encrypt/decrypt with counter nonces, key wrapping — Web Worker for blocking ops)
-- [ ] 01-04: Auth REST API (register, login, logout, refresh, password-change endpoints; Argon2id for auth key hash; jose JWT; encrypted_private_key storage and retrieval)
-- [ ] 01-05: Socket.IO server skeleton (authenticated handshake, room join on channel subscribe, JWT middleware, Redis Streams adapter)
-- [ ] 01-06: Docker Compose (app server, PostgreSQL, Redis, Coturn on isolated network with denied-peer-ip rules, MinIO with public URL config, health checks, secrets generation script)
-- [ ] 01-07: Auth UI (register form, login form, password-change flow, key derivation progress indicator, logout)
+- [ ] 01-01-PLAN.md — Monorepo scaffold (pnpm workspaces, Turborepo, shared types, server, client with shadcn/ui)
+- [ ] 01-02-PLAN.md — PostgreSQL schema (all tables with crypto-ready bytea columns from day one)
+- [ ] 01-03-PLAN.md — Client-side crypto layer (PBKDF2/HKDF derivation, X25519/Ed25519 keygen, AES-256-GCM wrapping in Web Worker)
+- [ ] 01-04-PLAN.md — Auth REST API (register, login, logout, refresh, password-change with Argon2id + jose JWT)
+- [ ] 01-05-PLAN.md — Socket.IO server skeleton (JWT auth middleware, Redis Streams adapter, connection handling)
+- [ ] 01-06-PLAN.md — Docker Compose (PostgreSQL, Redis, MinIO, Coturn on isolated network, health checks, secrets script)
+- [ ] 01-07-PLAN.md — Auth UI (register, login, password-change, recovery key flow, key derivation progress, split layout)
 
 ### Phase 2: Servers and Channels
 **Goal**: Users can create servers, generate invite links, join via those links, and manage channels — the complete server/channel organizational layer exists and is navigable.
@@ -161,11 +161,11 @@ Plans:
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
+Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation | 0/7 | Not started | - |
+| 1. Foundation | 0/7 | Planned | - |
 | 2. Servers and Channels | 0/4 | Not started | - |
 | 3. E2EE Text Messaging | 0/7 | Not started | - |
 | 4. Presence and Messaging UX | 0/5 | Not started | - |
