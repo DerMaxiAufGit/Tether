@@ -17,6 +17,10 @@ import serverByIdRoute from "./routes/servers/[id].js";
 import serverMembersRoute from "./routes/servers/members.js";
 import serverInvitesRoute from "./routes/servers/invites.js";
 import inviteJoinRoute from "./routes/invites/join.js";
+import listChannelsRoute from "./routes/channels/index.js";
+import createChannelRoute from "./routes/channels/create.js";
+import channelByIdRoute from "./routes/channels/[id].js";
+import reorderChannelsRoute from "./routes/channels/reorder.js";
 import { setupSocketIO } from "./socket/index.js";
 
 // Augment Fastify types so route handlers can access io
@@ -61,6 +65,12 @@ await server.register(serverInvitesRoute, { prefix: "/api/servers" });
 
 // Invite routes
 await server.register(inviteJoinRoute, { prefix: "/api/invites" });
+
+// Channel routes
+await server.register(listChannelsRoute, { prefix: "/api/servers" });
+await server.register(createChannelRoute, { prefix: "/api/servers" });
+await server.register(channelByIdRoute, { prefix: "/api/channels" });
+await server.register(reorderChannelsRoute, { prefix: "/api/servers" });
 
 // Graceful shutdown
 const shutdown = async (): Promise<void> => {
