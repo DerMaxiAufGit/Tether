@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 ## Current Position
 
 Phase: 2 of 7 (Servers and Channels)
-Plan: 4 of 6 in current phase (02-01, 02-02, 02-04 complete)
+Plan: 4 of 6 in current phase (02-01, 02-02, 02-03, 02-04 complete)
 Status: In progress
-Last activity: 2026-02-25 — Completed 02-04-PLAN.md (Channel CRUD API with reorder endpoint + client hooks)
+Last activity: 2026-02-25 — Completed 02-03-PLAN.md (Invite system: CRUD REST API, atomic join, client InvitePage) + 02-04-PLAN.md (Channel CRUD API)
 
-Progress: [████░░░░░░] 24% (9/38 plans complete)
+Progress: [████░░░░░░] 26% (10/38 plans complete)
 
 ## Performance Metrics
 
@@ -81,6 +81,10 @@ Recent decisions affecting current work:
 - 02-02: Socket.IO client connects to VITE_API_URL origin (not via Vite proxy) — Vite proxy only handles /api REST, cannot proxy WebSocket upgrades
 - 02-02: SocketProvider placed inside AppShell (behind ProtectedRoute) — socket only connects when user is authenticated
 - 02-02: QueryClientProvider wraps outermost BrowserRouter tree (outside AuthProvider) for future-proofing
+- 02-03: Membership check before atomic UPDATE — prevents 409 Conflict from consuming an invite use slot
+- 02-03: InvitePage handles auth redirect internally (not via ProtectedRoute) — outside AppShell/SocketProvider, uses useEffect + useAuth
+- 02-03: POST /api/invites/:code/join uses atomic UPDATE WHERE: SET uses = uses + 1 WHERE uses < max_uses AND not expired (race-safe)
+- 02-03: Invite preview GET /api/invites/:code requires no auth — public invite links shareable before requiring login
 - 02-04: Channel PATCH/DELETE registered under /api/channels (not /api/servers) — only need channel ID; serverId looked up from DB
 - 02-04: Owner-only guard for channel mutations in Phase 2; Phase 7 will replace with fine-grained role checks
 - 02-04: Position compaction uses ordered SELECT + CASE in same transaction as DELETE — no position gaps
@@ -97,6 +101,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-25T19:53:23Z
-Stopped at: Completed 02-04-PLAN.md — Channel CRUD API with reorder endpoint + client hooks
+Last session: 2026-02-25T19:54:04Z
+Stopped at: Completed 02-03-PLAN.md — Invite system: CRUD REST API, atomic join, client InvitePage (concurrent with 02-04)
 Resume file: None
