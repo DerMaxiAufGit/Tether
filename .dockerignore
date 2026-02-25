@@ -1,0 +1,32 @@
+# Dependencies — installed inside container
+node_modules
+**/node_modules
+
+# Git history
+.git
+.gitignore
+
+# Planning and docs
+.planning
+*.md
+!README.md
+
+# Build cache
+.turbo
+**/dist
+**/.turbo
+
+# Environment — secrets must not enter image
+.env
+.env.*
+!.env.example
+
+# OS artifacts
+.DS_Store
+Thumbs.db
+
+# Editor artifacts
+.vscode
+.idea
+*.swp
+*.swo
