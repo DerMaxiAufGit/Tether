@@ -4,13 +4,17 @@ import {
   Route,
   Navigate,
   useLocation,
+  useParams,
 } from "react-router-dom";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { queryClient } from "@/lib/queryClient";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import RegisterPage from "@/pages/auth/RegisterPage";
 import LoginPage from "@/pages/auth/LoginPage";
 import ChangePasswordPage from "@/pages/auth/ChangePasswordPage";
 import RecoveryKeyPage from "@/pages/auth/RecoveryKeyPage";
 import WelcomePage from "@/pages/WelcomePage";
+import AppShell from "@/pages/AppShell";
 
 // ============================================================
 // Route guards
@@ -83,6 +87,30 @@ function AuthLoadingScreen() {
 }
 
 // ============================================================
+// Placeholder pages (implemented in later plans)
+// ============================================================
+
+/** Placeholder for /servers/:serverId — implemented in plan 02-05 */
+function ServerView() {
+  const { serverId } = useParams<{ serverId: string }>();
+  return (
+    <div className="flex-1 flex items-center justify-center h-full">
+      <p className="text-zinc-500 text-sm">Server View — {serverId}</p>
+    </div>
+  );
+}
+
+/** Placeholder for /invite/:code — implemented in plan 02-04 */
+function InvitePage() {
+  const { code } = useParams<{ code: string }>();
+  return (
+    <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
+      <p className="text-zinc-500 text-sm">Invite — {code}</p>
+    </div>
+  );
+}
+
+// ============================================================
 // App routes
 // ============================================================
 
@@ -120,14 +148,24 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
+
+      {/* Main app shell — authenticated layout with nested routes */}
       <Route
         path="/"
         element={
           <ProtectedRoute>
-            <WelcomePage />
+            <AppShell />
           </ProtectedRoute>
         }
-      />
+      >
+        {/* No server selected — show welcome / empty state */}
+        <Route index element={<WelcomePage />} />
+        {/* Server selected — show server view (channels + chat area) */}
+        <Route path="servers/:serverId" element={<ServerView />} />
+      </Route>
+
+      {/* Invite route — public (auto-redirects to login if not authed) */}
+      <Route path="invite/:code" element={<InvitePage />} />
 
       {/* Catch-all: redirect to home */}
       <Route path="*" element={<Navigate to="/" replace />} />
@@ -142,9 +180,11 @@ function AppRoutes() {
 function App() {
   return (
     <BrowserRouter>
-      <AuthProvider>
-        <AppRoutes />
-      </AuthProvider>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <AppRoutes />
+        </AuthProvider>
+      </QueryClientProvider>
     </BrowserRouter>
   );
 }
