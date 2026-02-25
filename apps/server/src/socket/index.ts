@@ -59,9 +59,11 @@ export async function setupSocketIO(
   // Register JWT authentication middleware
   io.use(socketAuthMiddleware);
 
-  // Register connection handlers
+  // Register connection handlers (async — fire-and-forget with error boundary)
   io.on("connection", (socket) => {
-    registerConnectionHandlers(socket, logger);
+    registerConnectionHandlers(socket, logger).catch((err: Error) =>
+      logger.error({ err }, "Connection handler error")
+    );
   });
 
   return io;
