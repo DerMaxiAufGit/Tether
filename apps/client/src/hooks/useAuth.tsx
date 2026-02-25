@@ -18,7 +18,6 @@ import {
   useCallback,
   type ReactNode,
 } from "react";
-import { useNavigate } from "react-router-dom";
 import { setAccessToken, clearAccessToken, api } from "@/lib/api";
 
 // ============================================================
@@ -62,8 +61,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
     isAuthenticated: false,
     isLoading: true, // start loading — silent refresh in progress
   });
-
-  const navigate = useNavigate();
 
   // Silent auth check on mount — tries to restore session via refresh cookie
   useEffect(() => {
@@ -110,8 +107,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
     clearAccessToken();
     setState({ user: null, isAuthenticated: false, isLoading: false });
-    navigate("/login");
-  }, [navigate]);
+  }, []);
 
   const value: AuthContextValue = {
     ...state,

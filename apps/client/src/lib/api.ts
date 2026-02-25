@@ -11,6 +11,13 @@
  */
 
 // ============================================================
+// API base URL — set VITE_API_URL for dev (e.g. http://localhost:3001)
+// In production, leave unset to use relative paths (same-origin).
+// ============================================================
+
+const API_BASE = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/+$/, "") ?? "";
+
+// ============================================================
 // In-memory token store (module scope = not accessible from other scripts)
 // ============================================================
 
@@ -44,7 +51,7 @@ async function refreshAccessToken(): Promise<string | null> {
   _isRefreshing = true;
   _refreshPromise = (async () => {
     try {
-      const res = await fetch("/api/auth/refresh", {
+      const res = await fetch(`${API_BASE}/api/auth/refresh`, {
         method: "POST",
         credentials: "include",
       });
@@ -73,15 +80,17 @@ async function refreshAccessToken(): Promise<string | null> {
 
 type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
-function buildHeaders(method: HttpMethod, extraHeaders?: HeadersInit): Headers {
+function buildHeaders(method: HttpMethod, extraHeaders?: HeadersInit, hasBody?: boolean): Headers {
   const headers = new Headers(extraHeaders);
 
   if (_accessToken) {
     headers.set("Authorization", `Bearer ${_accessToken}`);
   }
 
-  // Set JSON content type for mutation methods (unless caller overrides)
+  // Set JSON content type for mutation methods with a body (unless caller overrides).
+  // Omitting Content-Type on bodyless POSTs avoids Fastify's FST_ERR_CTP_EMPTY_JSON_BODY.
   if (
+    hasBody &&
     ["POST", "PUT", "PATCH"].includes(method) &&
     !headers.has("Content-Type")
   ) {
@@ -97,7 +106,8 @@ export async function apiFetch(
 ): Promise<Response> {
   const method = ((options.method ?? "GET") as HttpMethod).toUpperCase() as HttpMethod;
 
-  const headers = buildHeaders(method, options.headers as HeadersInit | undefined);
+  const hasBody = options.body !== undefined && options.body !== null;
+  const headers = buildHeaders(method, options.headers as HeadersInit | undefined, hasBody);
 
   const init: RequestInit = {
     ...options,
@@ -106,7 +116,9 @@ export async function apiFetch(
     credentials: "include",
   };
 
-  let response = await fetch(path, init);
+  const url = path.startsWith("http") ? path : `${API_BASE}${path}`;
+
+  let response = await fetch(url, init);
 
   // On 401: attempt silent token refresh and retry once
   if (response.status === 401) {
@@ -115,7 +127,7 @@ export async function apiFetch(
     if (newToken) {
       // Retry with the new token
       headers.set("Authorization", `Bearer ${newToken}`);
-      response = await fetch(path, { ...init, headers });
+      response = await fetch(url, { ...init, headers });
     } else {
       // Refresh failed — clear state and redirect to login
       clearAccessToken();

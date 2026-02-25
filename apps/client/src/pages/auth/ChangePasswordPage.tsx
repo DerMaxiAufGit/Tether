@@ -106,12 +106,14 @@ export default function ChangePasswordPage() {
         ed25519KeyIv: cryptoResult.ed25519KeyIv,
       });
 
-      // Step 4: Clear auth state and redirect to login
-      await logout();
+      // Step 4: Navigate FIRST (leaves ProtectedRoute before auth state clears),
+      // then clear auth state. This prevents ProtectedRoute from saving
+      // "/change-password" as the return-to location.
       navigate("/login", {
         replace: true,
         state: { message: "Password changed successfully. Please sign in with your new password." },
       });
+      await logout();
     } catch (err) {
       const error = err as Error & { status?: number };
       if (
