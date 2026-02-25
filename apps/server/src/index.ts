@@ -15,6 +15,8 @@ import createServerRoute from "./routes/servers/create.js";
 import listServersRoute from "./routes/servers/index.js";
 import serverByIdRoute from "./routes/servers/[id].js";
 import serverMembersRoute from "./routes/servers/members.js";
+import serverInvitesRoute from "./routes/servers/invites.js";
+import inviteJoinRoute from "./routes/invites/join.js";
 import { setupSocketIO } from "./socket/index.js";
 
 // Augment Fastify types so route handlers can access io
@@ -55,6 +57,10 @@ await server.register(createServerRoute, { prefix: "/api/servers" });
 await server.register(listServersRoute, { prefix: "/api/servers" });
 await server.register(serverByIdRoute, { prefix: "/api/servers" });
 await server.register(serverMembersRoute, { prefix: "/api/servers" });
+await server.register(serverInvitesRoute, { prefix: "/api/servers" });
+
+// Invite routes
+await server.register(inviteJoinRoute, { prefix: "/api/invites" });
 
 // Graceful shutdown
 const shutdown = async (): Promise<void> => {

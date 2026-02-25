@@ -48,3 +48,39 @@ export interface CreateServerRequest {
 export interface UpdateServerRequest {
   name?: string;
 }
+
+// ---------------------------------------------------------------------------
+// Invite types
+// ---------------------------------------------------------------------------
+
+export interface InviteResponse {
+  id: string;
+  serverId: string;
+  creatorId: string;
+  code: string;
+  maxUses: number | null;
+  uses: number;
+  expiresAt: string | null;
+  createdAt: string;
+  creator?: {
+    id: string;
+    displayName: string;
+  };
+}
+
+export interface CreateInviteRequest {
+  /** Seconds until invite expires. Omit for never-expiring invite. */
+  expiresIn?: number;
+  /** Maximum number of uses. Null means unlimited. */
+  maxUses?: number | null;
+}
+
+/** Returned by GET /api/invites/:code — invite preview without consuming a use */
+export interface InviteInfoResponse {
+  code: string;
+  serverName: string;
+  serverIcon: string | null;
+  creatorName: string;
+  memberCount: number;
+  expiresAt: string | null;
+}
