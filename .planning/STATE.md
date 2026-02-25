@@ -10,27 +10,27 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 ## Current Position
 
 Phase: 1 of 7 (Foundation)
-Plan: 1 of 7 in current phase
+Plan: 2 of 7 in current phase
 Status: In progress
-Last activity: 2026-02-25 — Completed 01-01-PLAN.md (monorepo scaffold)
+Last activity: 2026-02-25 — Completed 01-02-PLAN.md (Drizzle schema + shared crypto types)
 
-Progress: [█░░░░░░░░░] 3% (1/38 plans complete)
+Progress: [██░░░░░░░░] 5% (2/38 plans complete)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 1
-- Average duration: 3 min
-- Total execution time: 3 min
+- Total plans completed: 2
+- Average duration: 4 min
+- Total execution time: 8 min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 01-foundation | 1/7 | 3 min | 3 min |
+| 01-foundation | 2/7 | 8 min | 4 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (3 min)
+- Last 5 plans: 01-01 (3 min), 01-02 (5 min)
 - Trend: Baseline established
 
 *Updated after each plan completion*
@@ -49,6 +49,10 @@ Recent decisions affecting current work:
 - 01-01: Tailwind v4 uses @import "tailwindcss" with zero config (no tailwind.config.js needed)
 - 01-01: shadcn/ui initialized manually via components.json (CLI is interactive, not automatable)
 - 01-01: pnpm 9.15.0 used (installed version) — packageManager field set accordingly
+- 01-02: bytea not in drizzle-orm/pg-core v0.45.x stable exports — use customType() wrapper
+- 01-02: postgres.js returns Buffer for bytea columns — convert to Uint8Array at crypto boundary
+- 01-02: permissions/bitfields stored as text strings to avoid JS 32-bit integer limit
+- 01-02: all 11 project tables defined in schema.ts — schema shape locked for all phases
 
 ### Pending Todos
 
@@ -61,6 +65,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-25T16:50:27Z
-Stopped at: Completed 01-01-PLAN.md — monorepo scaffold (server, client, shared)
+Last session: 2026-02-25T17:00:00Z
+Stopped at: Completed 01-02-PLAN.md — Drizzle schema + shared crypto types
 Resume file: None
