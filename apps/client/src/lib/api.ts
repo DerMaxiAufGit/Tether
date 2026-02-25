@@ -120,8 +120,12 @@ export async function apiFetch(
 
   let response = await fetch(url, init);
 
-  // On 401: attempt silent token refresh and retry once
-  if (response.status === 401) {
+  // On 401: attempt silent token refresh and retry once.
+  // Skip for the refresh endpoint itself — its 401 means "no valid session"
+  // and must propagate to the caller (useAuth) for graceful handling.
+  const isRefreshRequest = path.endsWith("/api/auth/refresh");
+
+  if (response.status === 401 && !isRefreshRequest) {
     const newToken = await refreshAccessToken();
 
     if (newToken) {
