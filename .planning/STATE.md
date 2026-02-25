@@ -10,29 +10,29 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 ## Current Position
 
 Phase: 2 of 7 (Servers and Channels)
-Plan: 5 of 6 in current phase (02-01, 02-02, 02-03, 02-04, 02-05 complete)
+Plan: 7 of 8 in current phase (02-01, 02-02, 02-03, 02-04, 02-05, 02-07 complete; 02-06 gap plan pending)
 Status: In progress
-Last activity: 2026-02-25 — Completed 02-05-PLAN.md (Server sidebar + channel list UI: ServerList, ServerIcon, ChannelList, ServerView)
+Last activity: 2026-02-25 — Completed 02-07-PLAN.md (UAT gap closure: add button SVG, hover morph, collapse animation, user info bar)
 
-Progress: [████░░░░░░] 28% (11/38 plans complete)
+Progress: [████░░░░░░] 29% (12/38 plans complete)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 9
-- Average duration: 3.3 min
-- Total execution time: 30 min
+- Total plans completed: 12
+- Average duration: 2.7 min
+- Total execution time: 32 min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-foundation | 6/7 | 24 min | 4 min |
-| 02-servers-and-channels | 4/6 | 10 min | 2.5 min |
+| 02-servers-and-channels | 6/8 | 12 min | 2 min |
 
 **Recent Trend:**
-- Last 5 plans: 02-01 (2 min), 02-02 (2 min), 02-03 (2 min), 02-04 (2 min), 02-05 (4 min)
-- Trend: Consistent fast delivery; UI plans slightly longer than API plans
+- Last 5 plans: 02-02 (2 min), 02-03 (2 min), 02-04 (2 min), 02-05 (4 min), 02-07 (2 min)
+- Trend: Consistent fast delivery; UAT gap closure plans fast (surgical CSS fixes)
 
 *Updated after each plan completion*
 
@@ -93,6 +93,9 @@ Recent decisions affecting current work:
 - 02-05: radix-ui unified import uses named exports: { Dialog } from 'radix-ui' (not 'radix-ui/react-dialog' subpath — not exported)
 - 02-05: dnd-kit per-group isolation — separate DndContext per channel type; PointerSensor activationConstraint {distance: 5} prevents click-drag conflicts
 - 02-05: Optimistic reorder stores [textChannels, voiceChannels] combined; positions are text 0..N-1, voice N..N+M-1 after any drag
+- 02-07: grid-rows collapse animation: always mount DndContext content; outer div transitions grid-template-rows 0fr↔1fr; inner div overflow-hidden clips during animation
+- 02-07: ease-out for instant-feeling hover morphs: starts at full speed, no perceptible delay vs ease-in-out
+- 02-07: SVG path icon for button content — immune to font metric centering issues unlike text characters
 
 ### Pending Todos
 
@@ -104,6 +107,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-25T20:02:42Z
-Stopped at: Completed 02-05-PLAN.md — Server sidebar + channel list UI (checkpoint reached — awaiting human verification)
+Last session: 2026-02-25T21:02:58Z
+Stopped at: Completed 02-07-PLAN.md — UAT gap closure cosmetic fixes
 Resume file: None
