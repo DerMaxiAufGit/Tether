@@ -54,13 +54,15 @@ Plans:
   4. Server owner can edit the server name and manage existing invite codes (view, revoke)
   5. Owner can delete the server; any member can leave — both are reflected in all connected clients in real-time
   6. User with appropriate permission can create, rename, delete, and reorder text and voice channels
-**Plans**: TBD
+**Plans**: 6 plans
 
 Plans:
-- [ ] 02-01: Server REST API (create, update, delete server; member join/leave; owner transfer)
-- [ ] 02-02: Invite system (generate invite code, join via code, enforce expiry and max_uses, real-time member join broadcast)
-- [ ] 02-03: Channel REST API (create, edit, delete, reorder channels; channel types: text, voice)
-- [ ] 02-04: Server/channel UI (server sidebar, channel list, server settings panel, invite modal, member list scaffold)
+- [ ] 02-01-PLAN.md — Server REST API + Socket.IO room join (create, list, update, delete server; member list, kick/leave; socket room infrastructure)
+- [ ] 02-02-PLAN.md — Client infrastructure (TanStack Query, Socket.IO client hook, AppShell layout, nested routes)
+- [ ] 02-03-PLAN.md — Invite system (generate invite code, atomic join via code, expiry/max-use enforcement, InvitePage with auth redirect)
+- [ ] 02-04-PLAN.md — Channel REST API + client hooks (create, edit, delete, reorder channels with SQL CASE bulk update)
+- [ ] 02-05-PLAN.md — Server sidebar + channel list UI (server icon strip, create/join modal, channel list with dnd-kit drag-and-drop)
+- [ ] 02-06-PLAN.md — Server settings + member management (settings page with 4 tabs, invite modal, toggleable member list panel)
 
 ### Phase 3: E2EE Text Messaging
 **Goal**: Users can send and receive end-to-end encrypted messages in text channels and in 1:1 DMs — the server stores and relays only ciphertext and never sees message content.
@@ -166,7 +168,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | 0/7 | Planned | - |
-| 2. Servers and Channels | 0/4 | Not started | - |
+| 2. Servers and Channels | 0/6 | Planned | - |
 | 3. E2EE Text Messaging | 0/7 | Not started | - |
 | 4. Presence and Messaging UX | 0/5 | Not started | - |
 | 5. Voice and Video | 0/7 | Not started | - |
