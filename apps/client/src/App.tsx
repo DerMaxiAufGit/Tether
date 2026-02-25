@@ -4,7 +4,6 @@ import {
   Route,
   Navigate,
   useLocation,
-  useParams,
 } from "react-router-dom";
 import InvitePage from "@/pages/invite/InvitePage";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -16,6 +15,7 @@ import ChangePasswordPage from "@/pages/auth/ChangePasswordPage";
 import RecoveryKeyPage from "@/pages/auth/RecoveryKeyPage";
 import WelcomePage from "@/pages/WelcomePage";
 import AppShell from "@/pages/AppShell";
+import ServerView from "@/pages/server/ServerView";
 
 // ============================================================
 // Route guards
@@ -88,15 +88,13 @@ function AuthLoadingScreen() {
 }
 
 // ============================================================
-// Placeholder pages (implemented in later plans)
+// Channel placeholder (shown when no channel is selected in a server)
 // ============================================================
 
-/** Placeholder for /servers/:serverId — implemented in plan 02-05 */
-function ServerView() {
-  const { serverId } = useParams<{ serverId: string }>();
+function ChannelPlaceholder() {
   return (
     <div className="flex-1 flex items-center justify-center h-full">
-      <p className="text-zinc-500 text-sm">Server View — {serverId}</p>
+      <p className="text-zinc-500 text-sm">Select a channel to start chatting</p>
     </div>
   );
 }
@@ -151,8 +149,13 @@ function AppRoutes() {
       >
         {/* No server selected — show welcome / empty state */}
         <Route index element={<WelcomePage />} />
-        {/* Server selected — show server view (channels + chat area) */}
-        <Route path="servers/:serverId" element={<ServerView />} />
+        {/* Server selected — show server view (channel panel + chat area) */}
+        <Route path="servers/:serverId" element={<ServerView />}>
+          {/* No channel selected — show placeholder */}
+          <Route index element={<ChannelPlaceholder />} />
+          {/* Channel selected — chat view (Phase 3) */}
+          <Route path="channels/:channelId" element={<ChannelPlaceholder />} />
+        </Route>
       </Route>
 
       {/* Invite route — public (auto-redirects to login if not authed) */}
