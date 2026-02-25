@@ -10,29 +10,29 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 ## Current Position
 
 Phase: 2 of 7 (Servers and Channels)
-Plan: 4 of 6 in current phase (02-01, 02-02, 02-03, 02-04 complete)
+Plan: 5 of 6 in current phase (02-01, 02-02, 02-03, 02-04, 02-05 complete)
 Status: In progress
-Last activity: 2026-02-25 — Completed 02-03-PLAN.md (Invite system: CRUD REST API, atomic join, client InvitePage) + 02-04-PLAN.md (Channel CRUD API)
+Last activity: 2026-02-25 — Completed 02-05-PLAN.md (Server sidebar + channel list UI: ServerList, ServerIcon, ChannelList, ServerView)
 
-Progress: [████░░░░░░] 26% (10/38 plans complete)
+Progress: [████░░░░░░] 28% (11/38 plans complete)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 8
-- Average duration: 3.25 min
-- Total execution time: 26 min
+- Total plans completed: 9
+- Average duration: 3.3 min
+- Total execution time: 30 min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-foundation | 6/7 | 24 min | 4 min |
-| 02-servers-and-channels | 3/6 | 6 min | 2 min |
+| 02-servers-and-channels | 4/6 | 10 min | 2.5 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-04 (5 min), 01-05 (5 min), 02-01 (2 min), 02-02 (2 min), 02-04 (2 min)
-- Trend: Fast infrastructure and API plans
+- Last 5 plans: 02-01 (2 min), 02-02 (2 min), 02-03 (2 min), 02-04 (2 min), 02-05 (4 min)
+- Trend: Consistent fast delivery; UI plans slightly longer than API plans
 
 *Updated after each plan completion*
 
@@ -90,6 +90,9 @@ Recent decisions affecting current work:
 - 02-04: Position compaction uses ordered SELECT + CASE in same transaction as DELETE — no position gaps
 - 02-04: Reorder endpoint validates all IDs belong to the server before applying SQL CASE update
 - 02-04: SQL CASE reorder pattern: sql`CASE ${sql.join(cases, sql` `)} END` with inArray WHERE
+- 02-05: radix-ui unified import uses named exports: { Dialog } from 'radix-ui' (not 'radix-ui/react-dialog' subpath — not exported)
+- 02-05: dnd-kit per-group isolation — separate DndContext per channel type; PointerSensor activationConstraint {distance: 5} prevents click-drag conflicts
+- 02-05: Optimistic reorder stores [textChannels, voiceChannels] combined; positions are text 0..N-1, voice N..N+M-1 after any drag
 
 ### Pending Todos
 
@@ -101,6 +104,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-25T19:54:04Z
-Stopped at: Completed 02-03-PLAN.md — Invite system: CRUD REST API, atomic join, client InvitePage (concurrent with 02-04)
+Last session: 2026-02-25T20:02:42Z
+Stopped at: Completed 02-05-PLAN.md — Server sidebar + channel list UI (checkpoint reached — awaiting human verification)
 Resume file: None
