@@ -10,27 +10,27 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 ## Current Position
 
 Phase: 1 of 7 (Foundation)
-Plan: 4 of 7 in current phase (01-01, 01-02, 01-03, 01-06, 01-04 complete)
+Plan: 5 of 7 in current phase (01-01, 01-02, 01-03, 01-04, 01-05, 01-06 complete)
 Status: In progress
-Last activity: 2026-02-25 — Completed 01-04-PLAN.md (auth REST API: register, login, logout, refresh, change-password)
+Last activity: 2026-02-25 — Completed 01-05-PLAN.md (Socket.IO server with Redis Streams adapter and JWT auth)
 
-Progress: [███░░░░░░░] 13% (5/38 plans complete)
+Progress: [████░░░░░░] 16% (6/38 plans complete)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 5
+- Total plans completed: 6
 - Average duration: 4 min
-- Total execution time: 19 min
+- Total execution time: 24 min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 01-foundation | 5/7 | 19 min | 4 min |
+| 01-foundation | 6/7 | 24 min | 4 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (3 min), 01-02 (5 min), 01-06 (2 min), 01-03 (4 min), 01-04 (5 min)
+- Last 5 plans: 01-02 (5 min), 01-06 (2 min), 01-03 (4 min), 01-04 (5 min), 01-05 (5 min)
 - Trend: Fast infrastructure and auth plans
 
 *Updated after each plan completion*
@@ -65,6 +65,11 @@ Recent decisions affecting current work:
 - 01-04: drizzle tx.execute() with postgres.js returns RowList which extends array directly — access rows as array[0], not rows.rows[0]
 - 01-04: Refresh cookie Path=/api/auth/refresh — browser only sends cookie on that exact endpoint
 - 01-04: Replay attack response: delete ALL refresh tokens for the user (nuclear revocation) + 401
+- 01-05: socket.handshake.auth.token used for JWT — extraHeaders don't work with pure WebSocket transport
+- 01-05: @socket.io/redis-streams-adapter used (NOT @socket.io/redis-adapter) — Streams adapter handles Redis disconnection without packet loss
+- 01-05: Separate Redis client for Socket.IO adapter — avoids blocking other Redis usage (e.g., caching)
+- 01-05: Socket.IO attaches after server.listen() callback — httpServer must be bound before Socket.IO can attach
+- 01-05: Graceful degradation: Socket.IO runs without adapter if Redis unavailable (logs warning, single-instance mode)
 
 ### Pending Todos
 
@@ -76,6 +81,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-25T17:09:50Z
-Stopped at: Completed 01-04-PLAN.md — auth REST API (register, login, logout, refresh, change-password)
+Last session: 2026-02-25T17:17:30Z
+Stopped at: Completed 01-05-PLAN.md — Socket.IO server skeleton (JWT auth + Redis Streams adapter)
 Resume file: None
