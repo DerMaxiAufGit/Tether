@@ -10,28 +10,28 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 ## Current Position
 
 Phase: 1 of 7 (Foundation)
-Plan: 3 of 7 in current phase (01-03 complete)
+Plan: 4 of 7 in current phase (01-01, 01-02, 01-03, 01-06, 01-04 complete)
 Status: In progress
-Last activity: 2026-02-25 — Completed 01-03-PLAN.md (crypto layer: Web Worker + typed API)
+Last activity: 2026-02-25 — Completed 01-04-PLAN.md (auth REST API: register, login, logout, refresh, change-password)
 
-Progress: [██░░░░░░░░] 10% (4/38 plans complete)
+Progress: [███░░░░░░░] 13% (5/38 plans complete)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 4
+- Total plans completed: 5
 - Average duration: 4 min
-- Total execution time: 14 min
+- Total execution time: 19 min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 01-foundation | 4/7 | 14 min | 4 min |
+| 01-foundation | 5/7 | 19 min | 4 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (3 min), 01-02 (5 min), 01-06 (2 min), 01-03 (4 min)
-- Trend: Fast infrastructure and crypto plans
+- Last 5 plans: 01-01 (3 min), 01-02 (5 min), 01-06 (2 min), 01-03 (4 min), 01-04 (5 min)
+- Trend: Fast infrastructure and auth plans
 
 *Updated after each plan completion*
 
@@ -61,6 +61,10 @@ Recent decisions affecting current work:
 - 01-03: HKDF zero salt is correct — all entropy from PBKDF2 salt per RFC 5869
 - 01-03: Encryption key non-extractable — cannot be exported from browser even by compromised JS
 - 01-03: KDF constants locked: KDF_ITERATIONS=600000, AUTH_HKDF_INFO="tether-auth-key-v1", ENCRYPTION_HKDF_INFO="tether-encryption-key-v1"
+- 01-04: Auth types prefixed 'Auth' (AuthRegisterRequest etc.) — RegisterRequest/ChangePasswordRequest names already used by crypto-worker message types in @tether/shared
+- 01-04: drizzle tx.execute() with postgres.js returns RowList which extends array directly — access rows as array[0], not rows.rows[0]
+- 01-04: Refresh cookie Path=/api/auth/refresh — browser only sends cookie on that exact endpoint
+- 01-04: Replay attack response: delete ALL refresh tokens for the user (nuclear revocation) + 401
 
 ### Pending Todos
 
@@ -68,11 +72,10 @@ None yet.
 
 ### Blockers/Concerns
 
-- Phase 1 needs research-phase before planning: Argon2 Web Worker implementation specifics
 - Phase 5 needs research-phase before planning: ICE candidate gating state machine; application-layer SDP signing with Ed25519
 
 ## Session Continuity
 
-Last session: 2026-02-25T16:58:48Z
-Stopped at: Completed 01-03-PLAN.md — crypto layer (Web Worker + typed Promise API)
+Last session: 2026-02-25T17:09:50Z
+Stopped at: Completed 01-04-PLAN.md — auth REST API (register, login, logout, refresh, change-password)
 Resume file: None
