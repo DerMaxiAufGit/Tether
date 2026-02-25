@@ -9,6 +9,10 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
+    "@tanstack/react-query": "^5.90.21",
     "@tether/shared": "workspace:*",
     "@zxcvbn-ts/core": "^3.0.4",
     "@zxcvbn-ts/language-en": "^3.0.2",
@@ -18,6 +22,7 @@
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-router-dom": "^7.13.1",
+    "socket.io-client": "^4.8.3",
     "tailwind-merge": "^3.3.0"
   },
   "devDependencies": {
