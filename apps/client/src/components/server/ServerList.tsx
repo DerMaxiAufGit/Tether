@@ -75,12 +75,14 @@ function AddServerButton({ onClick }: { onClick: () => void }) {
         bg-zinc-800 hover:bg-green-600
         border-2 border-dashed border-zinc-600 hover:border-transparent
         text-green-400 hover:text-white
-        transition-all duration-200 shrink-0 text-2xl font-light
+        transition-all duration-200 shrink-0
       "
       title="Add a Server"
       aria-label="Add a Server"
     >
-      +
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
+      </svg>
     </button>
   );
 }
@@ -150,10 +152,8 @@ export default function ServerList() {
               isSelected={server.id === selectedServerId}
             />
           ))}
-        </div>
 
-        {/* Add server button */}
-        <div className="shrink-0 px-3">
+          {/* Add server button — flows after icons, scrolls with list */}
           <AddServerButton onClick={() => setModalOpen(true)} />
         </div>
       </nav>
