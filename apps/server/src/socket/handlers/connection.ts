@@ -1,7 +1,7 @@
 import type { Socket } from "socket.io";
 import type { FastifyBaseLogger } from "fastify";
 import { db } from "../../db/client.js";
-import { channels, serverMembers } from "../../db/schema.js";
+import { channels, serverMembers, dmParticipants } from "../../db/schema.js";
 import { eq, and } from "drizzle-orm";
 
 /**
@@ -49,8 +49,23 @@ export async function registerConnectionHandlers(
     await socket.join(`channel:${channelId}`);
   }
 
+  // Join all DM channel rooms the user participates in
+  const dmChannels = await db
+    .select({ channelId: dmParticipants.channelId })
+    .from(dmParticipants)
+    .where(eq(dmParticipants.userId, userId));
+
+  for (const { channelId } of dmChannels) {
+    await socket.join(`channel:${channelId}`);
+  }
+
   logger.info(
-    { userId, serverRooms: memberships.length, channelRooms: memberChannels.length },
+    {
+      userId,
+      serverRooms: memberships.length,
+      channelRooms: memberChannels.length,
+      dmRooms: dmChannels.length,
+    },
     "User joined rooms",
   );
 
