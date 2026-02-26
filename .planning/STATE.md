@@ -100,6 +100,11 @@ Recent decisions affecting current work:
 - 02-08: TanStack Query exact: true on invalidateQueries — prevents ["servers"] prefix from matching ["servers", id, "channels"] during navigation
 - 02-08: server:subscribe emitted from CreateServerModal immediately after mutateAsync — socket must join room before real-time events can be received
 - 02-08: reconnect_attempt on socket.io (Manager), not socket — fires before reconnect handshake, correct place to update socket.auth
+- 03-01: MESSAGE_KEY_WRAP_INFO = "tether-message-key-wrap-v1" — HKDF info string locked for message key wrapping
+- 03-01: Ephemeral X25519 keypair generated per-recipient (not per-message) — unique shared secret per recipient
+- 03-01: wrapIv prepended to wrappedMessageKey in single base64 field (12 bytes || ciphertext) — DECRYPT_MESSAGE slices first 12 bytes as IV
+- 03-01: GET /api/auth/me returns x25519PublicKey as base64 so sender can include self in recipients without extra round-trip
+- 03-01: encryptMessage/decryptMessage have no onProgress callback — fast operations unlike PBKDF2
 - 03-02: REST broadcast uses io.to() (all in room) not socket.to() — REST handlers have no sender socket ref; client deduplicates via optimistic ID
 - 03-02: channel:{channelId} Socket.IO room added for per-channel message broadcasts (alongside server:{serverId} and user:{userId})
 - 03-02: Cursor pagination resolves cursor message's createdAt then uses lt() — avoids assuming UUID ordering
