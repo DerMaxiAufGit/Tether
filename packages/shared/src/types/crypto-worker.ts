@@ -50,11 +50,50 @@ export interface ChangePasswordRequest {
   };
 }
 
+export interface EncryptMessageRequest {
+  type: "ENCRYPT_MESSAGE";
+  id: string;
+  payload: {
+    plaintext: string;
+    recipients: Array<{
+      userId: string;
+      x25519PublicKey: string; // base64, raw 32 bytes
+    }>;
+  };
+}
+
+export interface DecryptMessageRequest {
+  type: "DECRYPT_MESSAGE";
+  id: string;
+  payload: {
+    encryptedContent: string;    // base64
+    contentIv: string;           // base64
+    encryptedMessageKey: string; // base64 (first 12 bytes = wrapIv)
+    ephemeralPublicKey: string;  // base64
+  };
+}
+
+export interface EncryptMessageResultData {
+  encryptedContent: string;    // base64
+  contentIv: string;           // base64
+  recipients: Array<{
+    recipientUserId: string;
+    encryptedMessageKey: string; // base64
+    ephemeralPublicKey: string;  // base64
+  }>;
+}
+
+export interface DecryptMessageResultData {
+  plaintext: string;
+}
+
 export type CryptoWorkerRequest =
   | DeriveKeysRequest
   | RegisterRequest
   | LoginDecryptRequest
-  | ChangePasswordRequest;
+  | ChangePasswordRequest
+  | EncryptMessageRequest
+  | DecryptMessageRequest;
 
 // ---- Result data shapes ------------------------------------
 
@@ -118,6 +157,8 @@ export type CryptoWorkerResponse =
   | ResultResponse<RegisterResultData>
   | ResultResponse<LoginDecryptResultData>
   | ResultResponse<ChangePasswordResultData>
+  | ResultResponse<EncryptMessageResultData>
+  | ResultResponse<DecryptMessageResultData>
   | ErrorResponse;
 
 // ---- Convenience type aliases ------------------------------
