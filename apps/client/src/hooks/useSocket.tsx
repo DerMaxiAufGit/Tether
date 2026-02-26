@@ -22,6 +22,9 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useLocation } from "react-router-dom";
 import { getAccessToken } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
+import { decryptMessage } from "@/lib/crypto";
+import type { MessageEnvelope } from "@tether/shared";
+import type { DecryptedMessage } from "@/hooks/useMessages";
 
 // ============================================================
 // Socket.IO server URL
@@ -185,6 +188,77 @@ export function SocketProvider({ children }: SocketProviderProps) {
       }
     };
 
+    const onMessageCreated = async (data: MessageEnvelope) => {
+      // Skip if this message was sent by the current user (optimistic update handles it)
+      if (data.senderId === user?.id) return;
+
+      // Find the current user's recipient key from the envelope
+      const myKey = data.recipientKeys.find((k) => k.recipientUserId === user?.id);
+      if (!myKey) return; // Not a recipient
+
+      try {
+        const result = await decryptMessage({
+          encryptedContent: data.encryptedContent,
+          contentIv: data.contentIv,
+          encryptedMessageKey: myKey.encryptedMessageKey,
+          ephemeralPublicKey: myKey.ephemeralPublicKey,
+        });
+
+        const decryptedMsg: DecryptedMessage = {
+          id: data.messageId,
+          channelId: data.channelId,
+          senderId: data.senderId,
+          senderDisplayName: data.senderDisplayName,
+          senderAvatarUrl: data.senderAvatarUrl,
+          encryptedContent: data.encryptedContent,
+          contentIv: data.contentIv,
+          contentAlgorithm: data.contentAlgorithm,
+          epoch: data.epoch,
+          createdAt: data.createdAt,
+          editedAt: null,
+          recipientKey: {
+            encryptedMessageKey: myKey.encryptedMessageKey,
+            ephemeralPublicKey: myKey.ephemeralPublicKey,
+          },
+          plaintext: result.plaintext,
+          decryptionFailed: false,
+          status: "received",
+        };
+
+        // Prepend to the first page (newest-first) in the query cache for this channel
+        queryClient.setQueryData<{ pages: DecryptedMessage[][]; pageParams: unknown[] }>(
+          ["messages", data.channelId],
+          (old) => {
+            if (!old) return old;
+            return {
+              ...old,
+              pages: [[decryptedMsg, ...(old.pages[0] ?? [])], ...old.pages.slice(1)],
+            };
+          },
+        );
+      } catch {
+        // Decryption failed — skip appending; the message will appear on next query refetch
+      }
+    };
+
+    const onMessageDeleted = (data: { messageId: string; channelId: string }) => {
+      queryClient.setQueryData<{ pages: DecryptedMessage[][]; pageParams: unknown[] }>(
+        ["messages", data.channelId],
+        (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            pages: old.pages.map((page) =>
+              page.filter((msg) => msg.id !== data.messageId),
+            ),
+          };
+        },
+      );
+    };
+
+    // Stable wrapper for the async handler — needed so socket.off() can match the exact reference
+    const onMessageCreatedWrapper = (data: MessageEnvelope) => { void onMessageCreated(data); };
+
     socket.on("server:created", onServerCreated);
     socket.on("server:deleted", onServerDeleted);
     socket.on("server:updated", onServerUpdated);
@@ -195,6 +269,8 @@ export function SocketProvider({ children }: SocketProviderProps) {
     socket.on("channel:updated", onChannelUpdated);
     socket.on("channel:reordered", onChannelReordered);
     socket.on("channel:deleted", onChannelDeleted);
+    socket.on("message:created", onMessageCreatedWrapper);
+    socket.on("message:deleted", onMessageDeleted);
 
     return () => {
       socket.off("server:created", onServerCreated);
@@ -207,6 +283,8 @@ export function SocketProvider({ children }: SocketProviderProps) {
       socket.off("channel:updated", onChannelUpdated);
       socket.off("channel:reordered", onChannelReordered);
       socket.off("channel:deleted", onChannelDeleted);
+      socket.off("message:created", onMessageCreatedWrapper);
+      socket.off("message:deleted", onMessageDeleted);
     };
   }, [socket, queryClient, navigate, user]);
 
