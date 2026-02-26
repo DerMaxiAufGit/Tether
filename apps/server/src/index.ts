@@ -21,6 +21,9 @@ import listChannelsRoute from "./routes/channels/index.js";
 import createChannelRoute from "./routes/channels/create.js";
 import channelByIdRoute from "./routes/channels/[id].js";
 import reorderChannelsRoute from "./routes/channels/reorder.js";
+import createMessageRoute from "./routes/messages/create.js";
+import listMessagesRoute from "./routes/messages/list.js";
+import deleteMessageRoute from "./routes/messages/delete.js";
 import { setupSocketIO } from "./socket/index.js";
 
 // Augment Fastify types so route handlers can access io
@@ -71,6 +74,11 @@ await server.register(listChannelsRoute, { prefix: "/api/servers" });
 await server.register(createChannelRoute, { prefix: "/api/servers" });
 await server.register(channelByIdRoute, { prefix: "/api/channels" });
 await server.register(reorderChannelsRoute, { prefix: "/api/servers" });
+
+// Message routes
+await server.register(createMessageRoute, { prefix: "/api/channels" });
+await server.register(listMessagesRoute, { prefix: "/api/channels" });
+await server.register(deleteMessageRoute, { prefix: "/api/messages" });
 
 // Graceful shutdown
 const shutdown = async (): Promise<void> => {
