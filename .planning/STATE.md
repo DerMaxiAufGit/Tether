@@ -23,11 +23,11 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 ## Current Position
 
 Phase: 3 of 7 (E2EE Text Messaging)
-Plan: 4 of N in current phase (03-01, 03-02, 03-03, 03-04 complete)
+Plan: 5 of N in current phase (03-01, 03-02, 03-03, 03-04, 03-05 complete)
 Status: In progress
-Last activity: 2026-02-26 — Completed 03-04-PLAN.md (DM schema + endpoints + client hooks)
+Last activity: 2026-02-26 — Completed 03-05-PLAN.md (message UI: MessageList, MessageItem, MessageInput, ChannelView)
 
-Progress: [████░░░░░░] 32% (14/38 plans complete)
+Progress: [████░░░░░░] 34% (15/38 plans complete)
 
 ## Performance Metrics
 
@@ -50,6 +50,7 @@ Progress: [████░░░░░░] 32% (14/38 plans complete)
 
 *Updated after each plan completion*
 | Phase 03-e2ee-text-messaging P04 | 5 | 2 tasks | 11 files |
+| Phase 03-e2ee-text-messaging P05 | 5 | 2 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -132,6 +133,9 @@ Recent decisions affecting current work:
 - [Phase 03-04]: nullable serverId: channels.serverId becomes nullable to support DM channels; null guard added in PATCH/DELETE routes
 - [Phase 03-04]: server-sharing validation: users must share at least one server to DM each other (prevents unsolicited DMs)
 - [Phase 03-04]: socketsJoin on DM creation: io.to(user:{id}).socketsJoin(channel:{id}) adds both users to room immediately without reconnect
+- 03-05: ChannelView does not render own header bar — ServerView.tsx already renders channel name header; ChannelView only adds MessageList + MessageInput
+- 03-05: CryptoUnlockPrompt uses encryptMessage probe to detect worker key state — no dedicated PING message needed; keys-not-loaded errors trigger the unlock UI
+- 03-05: x25519PublicKey added to ServerMemberResponse.user (shared type + server endpoint) — missing field required for E2EE recipient key wrapping in ChannelView send handler
 
 ### Pending Todos
 
@@ -143,6 +147,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-26T08:55:56Z
-Stopped at: Completed 03-03-PLAN.md (client message hooks: useMessages, useSendMessage, useDeleteMessage + socket listeners).
+Last session: 2026-02-26T09:10:11Z
+Stopped at: Completed 03-05-PLAN.md (message UI: MessageList, MessageItem, MessageInput, ChannelView + route wiring).
 Resume file: None

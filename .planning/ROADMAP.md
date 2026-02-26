@@ -171,7 +171,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 |-------|----------------|--------|-----------|
 | 1. Foundation | 0/7 | Planned | - |
 | 2. Servers and Channels | 0/8 | Planned | - |
-| 3. E2EE Text Messaging | 4/7 | In Progress|  |
+| 3. E2EE Text Messaging | 5/7 | In Progress|  |
 | 4. Presence and Messaging UX | 0/5 | Not started | - |
 | 5. Voice and Video | 0/7 | Not started | - |
 | 6. Files and Media | 0/4 | Not started | - |
