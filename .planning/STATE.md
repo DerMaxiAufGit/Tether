@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-02-25)
 
 **Core value:** Messages are zero-knowledge to the server — only authenticated users with their credentials can decrypt message content.
-**Current focus:** Phase 2 — Servers and Channels
+**Current focus:** Phase 3 — E2EE Text Messaging
 
 ## Current Position
 
-Phase: 2 of 7 (Servers and Channels)
-Plan: 8 of 8 in current phase (02-01, 02-02, 02-03, 02-04, 02-05, 02-07, 02-08 complete; 02-06 gap plan pending)
+Phase: 3 of 7 (E2EE Text Messaging)
+Plan: 2 of N in current phase (03-01, 03-02 complete)
 Status: In progress
-Last activity: 2026-02-25 — Completed 02-08-PLAN.md (Fix infinite loading, real-time events, add invite UI)
+Last activity: 2026-02-26 — Completed 03-02-PLAN.md (Message REST API + Socket.IO channel rooms)
 
-Progress: [████░░░░░░] 30% (13/38 plans complete)
+Progress: [████░░░░░░] 32% (14/38 plans complete)
 
 ## Performance Metrics
 
@@ -29,10 +29,11 @@ Progress: [████░░░░░░] 30% (13/38 plans complete)
 |-------|-------|-------|----------|
 | 01-foundation | 6/7 | 24 min | 4 min |
 | 02-servers-and-channels | 7/8 | 14 min | 2 min |
+| 03-e2ee-text-messaging | 1/N | 2 min | 2 min |
 
 **Recent Trend:**
-- Last 5 plans: 02-03 (2 min), 02-04 (2 min), 02-05 (4 min), 02-07 (2 min), 02-08 (2 min)
-- Trend: Consistent fast delivery; bug fix + feature plans remain fast with surgical changes
+- Last 5 plans: 02-05 (4 min), 02-07 (2 min), 02-08 (2 min), 03-02 (2 min)
+- Trend: Consistent fast delivery; API plans remain at 2 min with clear patterns to follow
 
 *Updated after each plan completion*
 
@@ -99,6 +100,11 @@ Recent decisions affecting current work:
 - 02-08: TanStack Query exact: true on invalidateQueries — prevents ["servers"] prefix from matching ["servers", id, "channels"] during navigation
 - 02-08: server:subscribe emitted from CreateServerModal immediately after mutateAsync — socket must join room before real-time events can be received
 - 02-08: reconnect_attempt on socket.io (Manager), not socket — fires before reconnect handshake, correct place to update socket.auth
+- 03-02: REST broadcast uses io.to() (all in room) not socket.to() — REST handlers have no sender socket ref; client deduplicates via optimistic ID
+- 03-02: channel:{channelId} Socket.IO room added for per-channel message broadcasts (alongside server:{serverId} and user:{userId})
+- 03-02: Cursor pagination resolves cursor message's createdAt then uses lt() — avoids assuming UUID ordering
+- 03-02: server:subscribe extended to also join text channel rooms for the new server — prevents gap after invite join
+- 03-02: channel:subscribe verifies DB membership before socket.join() — mirrors server:subscribe security gate pattern
 
 ### Pending Todos
 
@@ -110,6 +116,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-25T21:10:00Z
-Stopped at: Gap closure plans 02-07/02-08 executed. Verification: 4/6 criteria pass. Remaining gaps trace to 02-06 (server settings UI).
+Last session: 2026-02-26T08:52:51Z
+Stopped at: Completed 03-02-PLAN.md (Message REST API + Socket.IO channel rooms). Server-side message pipeline complete.
 Resume file: None
