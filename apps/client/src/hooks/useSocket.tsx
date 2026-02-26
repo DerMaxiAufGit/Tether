@@ -101,11 +101,20 @@ export function SocketProvider({ children }: SocketProviderProps) {
     };
     socket.io.on("reconnect_attempt", onReconnectAttempt);
 
+    // After reconnect, invalidate message and DM queries so any messages
+    // missed during the disconnection period are fetched immediately.
+    const onReconnect = () => {
+      void queryClient.invalidateQueries({ queryKey: ["messages"] });
+      void queryClient.invalidateQueries({ queryKey: ["dms"] });
+    };
+    socket.io.on("reconnect", onReconnect);
+
     return () => {
       socket.io.off("reconnect_attempt", onReconnectAttempt);
+      socket.io.off("reconnect", onReconnect);
       socket.disconnect();
     };
-  }, [isAuthenticated, socket]);
+  }, [isAuthenticated, socket, queryClient]);
 
   // ============================================================
   // Socket.IO event listeners → TanStack Query cache invalidation
@@ -236,6 +245,9 @@ export function SocketProvider({ children }: SocketProviderProps) {
             };
           },
         );
+
+        // Also update DM list sort order when a new DM message arrives
+        void queryClient.invalidateQueries({ queryKey: ["dms"] });
       } catch {
         // Decryption failed — skip appending; the message will appear on next query refetch
       }
