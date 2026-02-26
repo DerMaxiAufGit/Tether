@@ -12,10 +12,52 @@
  */
 
 import { useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { useServers } from "@/hooks/useServers";
 import ServerIcon from "./ServerIcon";
 import CreateServerModal from "./CreateServerModal";
+
+// ============================================================
+// DM (Messages) button — at top of server strip, navigates to /dms
+// ============================================================
+
+function DMButton({ isActive }: { isActive: boolean }) {
+  const navigate = useNavigate();
+
+  return (
+    <div className="relative flex items-center" title="Direct Messages">
+      {/* Left pill indicator */}
+      <div
+        className={`
+          absolute -left-3 w-1 rounded-r-full bg-white
+          transition-all duration-200
+          ${isActive ? "h-9 opacity-100" : "h-0 opacity-0"}
+        `}
+      />
+      <button
+        onClick={() => navigate("/dms")}
+        className={`
+          group w-12 h-12 flex items-center justify-center
+          bg-zinc-800 hover:bg-indigo-500
+          transition-all duration-200 shrink-0 cursor-pointer
+          ${isActive ? "rounded-2xl bg-indigo-500" : "rounded-[50%] hover:rounded-2xl"}
+        `}
+        aria-label="Direct Messages"
+        aria-current={isActive ? "page" : undefined}
+      >
+        <svg
+          width="22"
+          height="22"
+          viewBox="0 0 24 24"
+          fill="currentColor"
+          className="text-zinc-300"
+        >
+          <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z" />
+        </svg>
+      </button>
+    </div>
+  );
+}
 
 // ============================================================
 // Home button
@@ -116,8 +158,10 @@ export default function ServerList() {
   const [modalOpen, setModalOpen] = useState(false);
   const { serverId: selectedServerId } = useParams<{ serverId: string }>();
   const { data: servers, isLoading } = useServers();
+  const location = useLocation();
 
-  const isHome = !selectedServerId;
+  const isDMs = location.pathname.startsWith("/dms");
+  const isHome = !selectedServerId && !isDMs;
 
   return (
     <>
@@ -132,6 +176,9 @@ export default function ServerList() {
       >
         {/* Home button — shows brand icon at rest, home icon on hover */}
         <HomeButton isActive={isHome} />
+
+        {/* DM button — speech bubble icon, navigates to /dms */}
+        <DMButton isActive={isDMs} />
 
         {/* Divider */}
         <div className="w-8 h-px bg-zinc-700 my-1 shrink-0" />

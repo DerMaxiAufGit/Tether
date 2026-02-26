@@ -16,8 +16,10 @@ import RecoveryKeyPage from "@/pages/auth/RecoveryKeyPage";
 import WelcomePage from "@/pages/WelcomePage";
 import AppShell from "@/pages/AppShell";
 import ServerView from "@/pages/server/ServerView";
-import ServerSettings from "@/pages/server/settings/ServerSettings";
 import ChannelView from "@/pages/server/ChannelView";
+import ServerSettings from "@/pages/server/settings/ServerSettings";
+import DMLayout from "@/pages/dm/DMLayout";
+import DMView from "@/pages/dm/DMView";
 
 // ============================================================
 // Route guards
@@ -155,6 +157,25 @@ function AppRoutes() {
         </Route>
         {/* Server settings — full-page, inside AppShell so icon strip stays visible */}
         <Route path="servers/:serverId/settings" element={<ServerSettings />} />
+        {/* DM section — sibling to servers/:serverId, both under AppShell */}
+        <Route path="dms" element={<DMLayout />}>
+          {/* No conversation selected — show centered placeholder */}
+          <Route
+            index
+            element={
+              <div className="flex-1 flex items-center justify-center h-full">
+                <div className="text-center">
+                  <p className="text-zinc-400 text-sm font-medium">No conversation selected</p>
+                  <p className="text-zinc-600 text-xs mt-1">
+                    Select a conversation or start a new one
+                  </p>
+                </div>
+              </div>
+            }
+          />
+          {/* Conversation selected — DM view */}
+          <Route path=":channelId" element={<DMView />} />
+        </Route>
       </Route>
 
       {/* Invite route — public (auto-redirects to login if not authed) */}
