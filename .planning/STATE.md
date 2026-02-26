@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-02-26T09:02:50Z"
+last_updated: "2026-02-26T09:16:13.550Z"
 progress:
   total_phases: 3
   completed_phases: 0
   total_plans: 22
-  completed_plans: 16
+  completed_plans: 19
 ---
 
 # Project State
@@ -23,11 +23,11 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 ## Current Position
 
 Phase: 3 of 7 (E2EE Text Messaging)
-Plan: 5 of N in current phase (03-01, 03-02, 03-03, 03-04, 03-05 complete)
+Plan: 6 of 7 in current phase (03-01, 03-02, 03-03, 03-04, 03-05, 03-06 complete)
 Status: In progress
-Last activity: 2026-02-26 — Completed 03-05-PLAN.md (message UI: MessageList, MessageItem, MessageInput, ChannelView)
+Last activity: 2026-02-26 — Completed 03-06-PLAN.md (DM UI: layout, list, view, server strip icon, member context menu, routes)
 
-Progress: [████░░░░░░] 34% (15/38 plans complete)
+Progress: [████░░░░░░] 37% (16/38 plans complete)
 
 ## Performance Metrics
 
@@ -51,6 +51,7 @@ Progress: [████░░░░░░] 34% (15/38 plans complete)
 *Updated after each plan completion*
 | Phase 03-e2ee-text-messaging P04 | 5 | 2 tasks | 11 files |
 | Phase 03-e2ee-text-messaging P05 | 5 | 2 tasks | 9 files |
+| Phase 03 P06 | 8 | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -136,6 +137,9 @@ Recent decisions affecting current work:
 - 03-05: ChannelView does not render own header bar — ServerView.tsx already renders channel name header; ChannelView only adds MessageList + MessageInput
 - 03-05: CryptoUnlockPrompt uses encryptMessage probe to detect worker key state — no dedicated PING message needed; keys-not-loaded errors trigger the unlock UI
 - 03-05: x25519PublicKey added to ServerMemberResponse.user (shared type + server endpoint) — missing field required for E2EE recipient key wrapping in ChannelView send handler
+- [Phase 03-06]: DM icon placed between HomeButton and divider; indigo color distinguishes from home button (cyan)
+- [Phase 03-06]: New DM dialog: queries members from first server (serverIds[0]) — simple approach avoiding dynamic hook counts
+- [Phase 03-06]: DMView recipients: exactly 2 (participant + self) from DMConversationResponse.participant.x25519PublicKey + useAuth.user.x25519PublicKey
 
 ### Pending Todos
 

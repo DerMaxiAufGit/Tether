@@ -8,9 +8,6 @@
  *   - Exactly 2 recipients: self (from useAuth) + the other participant (from useDMs data)
  *   - Both users' x25519PublicKeys are required for E2EE
  *
- * Crypto unlock:
- *   - Same pattern as ChannelView: CryptoUnlockPrompt shown when worker keys not loaded
- *
  * Layout: identical to ChannelView — header + message list + input
  */
 
