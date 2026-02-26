@@ -76,16 +76,16 @@ Plans:
   3. User can open a DM conversation with any server-sharing user and exchange encrypted messages that only the two participants can read
   4. User can delete their own message and it is removed for all participants immediately
   5. Messages sent while a recipient is offline are delivered upon reconnection and decrypt correctly
-**Plans**: TBD
+**Plans**: 7 plans
 
 Plans:
-- [ ] 03-01: Group key distribution (per-message AES-256-GCM key, per-recipient X25519 ECDH wrap, MessageRecipientKey schema rows, epoch numbering)
-- [ ] 03-02: Message send/receive pipeline (encrypt on client, POST to REST, Socket.IO broadcast of ciphertext envelope, decrypt on receive, optimistic UI)
-- [ ] 03-03: Message persistence and pagination (ciphertext fetch, client-side decrypt-on-scroll, cursor-based pagination)
-- [ ] 03-04: DM system (X25519 DH shared secret per conversation, DM channel creation, DM send/receive with same hybrid encryption path)
-- [ ] 03-05: Message delete (REST DELETE, Socket.IO broadcast, client removal from local state)
-- [ ] 03-06: Text channel UI (message list, message input, channel header, scroll behavior, optimistic message rendering)
-- [ ] 03-07: DM UI (DM list sidebar, DM conversation view, start-DM flow from member context menu)
+- [ ] 03-01-PLAN.md — Shared message types, crypto worker encrypt/decrypt, AuthUser x25519PublicKey
+- [ ] 03-02-PLAN.md — Message REST API (create, list, delete) + Socket.IO broadcast + channel room join
+- [ ] 03-03-PLAN.md — Client message hooks (useMessages, useSendMessage, useDeleteMessage) + socket listeners
+- [ ] 03-04-PLAN.md — DM schema (nullable serverId, dm_participants) + DM REST API + client hooks
+- [ ] 03-05-PLAN.md — Text channel UI (MessageList, MessageItem, MessageInput, ChannelView, CryptoUnlockPrompt)
+- [ ] 03-06-PLAN.md — DM UI (DMLayout, DMList, DMView, server strip icon, member context menu)
+- [ ] 03-07-PLAN.md — Integration fixes, DM real-time updates, human verification checkpoint
 
 ### Phase 4: Presence and Messaging UX
 **Goal**: Users see who is online, get notified of activity directed at them, can see when others are typing, and can react to messages — the real-time social layer that makes the platform feel alive.
