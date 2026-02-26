@@ -29,6 +29,7 @@ export default async function meRoute(fastify: FastifyInstance): Promise<void> {
           avatarUrl: users.avatarUrl,
           status: users.status,
           createdAt: users.createdAt,
+          x25519PublicKey: users.x25519PublicKey,
         })
         .from(users)
         .where(eq(users.id, userId))
@@ -38,7 +39,12 @@ export default async function meRoute(fastify: FastifyInstance): Promise<void> {
         return reply.code(404).send({ error: "User not found" });
       }
 
-      return reply.code(200).send({ user });
+      return reply.code(200).send({
+        user: {
+          ...user,
+          x25519PublicKey: (user.x25519PublicKey as Buffer).toString("base64"),
+        },
+      });
     },
   });
 

@@ -20,12 +20,15 @@ import {
   KDF_ITERATIONS,
   AUTH_HKDF_INFO,
   ENCRYPTION_HKDF_INFO,
+  MESSAGE_KEY_WRAP_INFO,
 } from "@tether/shared";
 import type {
   CryptoWorkerRequest,
   RegisterResultData,
   LoginDecryptResultData,
   ChangePasswordResultData,
+  EncryptMessageResultData,
+  DecryptMessageResultData,
 } from "@tether/shared";
 
 // ============================================================
@@ -260,8 +263,7 @@ async function unwrapPrivateKeys(
 // Main message handler
 // ============================================================
 
-// In-memory store for unwrapped private keys (Phase 3 will use these)
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+// In-memory store for unwrapped private keys — used by ENCRYPT_MESSAGE and DECRYPT_MESSAGE
 let _cachedKeys: UnwrappedKeys | null = null;
 
 self.onmessage = async (event: MessageEvent<CryptoWorkerRequest>) => {
@@ -457,6 +459,164 @@ self.onmessage = async (event: MessageEvent<CryptoWorkerRequest>) => {
         };
 
         postResult(result);
+        break;
+      }
+
+      // ----------------------------------------------------------
+      // ENCRYPT_MESSAGE: Encrypt plaintext for multiple recipients
+      // Uses ephemeral X25519 ECDH + HKDF + AES-256-GCM wrap per recipient
+      // ----------------------------------------------------------
+      case "ENCRYPT_MESSAGE": {
+        if (!_cachedKeys) throw new Error("Keys not unlocked — call LOGIN_DECRYPT first");
+
+        const { plaintext, recipients } = payload;
+
+        // 1. Generate fresh AES-256-GCM message key (extractable for wrapping)
+        const messageKey = await crypto.subtle.generateKey(
+          { name: "AES-GCM", length: 256 },
+          true,
+          ["encrypt", "decrypt"],
+        );
+
+        // 2. Encrypt plaintext
+        const contentIv = crypto.getRandomValues(new Uint8Array(12));
+        const encryptedContent = new Uint8Array(
+          await crypto.subtle.encrypt(
+            { name: "AES-GCM", iv: contentIv },
+            messageKey,
+            new TextEncoder().encode(plaintext),
+          ),
+        );
+
+        // 3. For each recipient, wrap message key using ephemeral ECDH
+        const wrappedKeys = [];
+        for (const recipient of recipients) {
+          // Generate ephemeral X25519 key pair per recipient
+          const ephemeralKp = await crypto.subtle.generateKey(
+            { name: "X25519" },
+            false,
+            ["deriveKey", "deriveBits"],
+          );
+
+          // Import recipient's X25519 public key (raw 32 bytes)
+          const recipientPub = await crypto.subtle.importKey(
+            "raw",
+            base64ToUint8(recipient.x25519PublicKey),
+            { name: "X25519" },
+            false,
+            [],
+          );
+
+          // ECDH: ephemeral private x recipient public -> shared bits
+          const sharedBits = await crypto.subtle.deriveBits(
+            { name: "X25519", public: recipientPub },
+            ephemeralKp.privateKey,
+            256,
+          );
+
+          // HKDF: shared bits -> AES-256-GCM wrap key
+          const hkdfKey = await crypto.subtle.importKey("raw", sharedBits, "HKDF", false, ["deriveKey"]);
+          const wrapKey = await crypto.subtle.deriveKey(
+            { name: "HKDF", hash: "SHA-256", salt: new Uint8Array(32), info: new TextEncoder().encode(MESSAGE_KEY_WRAP_INFO) },
+            hkdfKey,
+            { name: "AES-GCM", length: 256 },
+            false,
+            ["wrapKey"],
+          );
+
+          // Wrap the message key
+          const wrapIv = crypto.getRandomValues(new Uint8Array(12));
+          const wrappedMsgKey = new Uint8Array(
+            await crypto.subtle.wrapKey("raw", messageKey, wrapKey, { name: "AES-GCM", iv: wrapIv }),
+          );
+
+          // Concat wrapIv + wrappedMsgKey for storage
+          const combined = new Uint8Array(12 + wrappedMsgKey.length);
+          combined.set(wrapIv, 0);
+          combined.set(wrappedMsgKey, 12);
+
+          // Export ephemeral public key
+          const ephPubBytes = new Uint8Array(await crypto.subtle.exportKey("raw", ephemeralKp.publicKey));
+
+          wrappedKeys.push({
+            recipientUserId: recipient.userId,
+            encryptedMessageKey: uint8ToBase64(combined),
+            ephemeralPublicKey: uint8ToBase64(ephPubBytes),
+          });
+        }
+
+        const encryptResult: EncryptMessageResultData = {
+          encryptedContent: uint8ToBase64(encryptedContent),
+          contentIv: uint8ToBase64(contentIv),
+          recipients: wrappedKeys,
+        };
+
+        postResult(encryptResult);
+        break;
+      }
+
+      // ----------------------------------------------------------
+      // DECRYPT_MESSAGE: Decrypt a message ciphertext using cached private key
+      // Reverses ECDH + HKDF + AES-256-GCM unwrap to recover plaintext
+      // ----------------------------------------------------------
+      case "DECRYPT_MESSAGE": {
+        if (!_cachedKeys) throw new Error("Keys not unlocked — call LOGIN_DECRYPT first");
+
+        const { encryptedContent, contentIv, encryptedMessageKey, ephemeralPublicKey } = payload;
+
+        const encMsgKeyBytes = base64ToUint8(encryptedMessageKey);
+        const wrapIv = encMsgKeyBytes.slice(0, 12);
+        const wrappedKey = encMsgKeyBytes.slice(12);
+
+        // Import ephemeral public key
+        const ephPub = await crypto.subtle.importKey(
+          "raw",
+          base64ToUint8(ephemeralPublicKey),
+          { name: "X25519" },
+          false,
+          [],
+        );
+
+        // ECDH: my private x ephemeral public -> same shared bits
+        const sharedBits = await crypto.subtle.deriveBits(
+          { name: "X25519", public: ephPub },
+          _cachedKeys.x25519PrivateKey,
+          256,
+        );
+
+        // HKDF -> unwrap key
+        const hkdfKey = await crypto.subtle.importKey("raw", sharedBits, "HKDF", false, ["deriveKey"]);
+        const unwrapKey = await crypto.subtle.deriveKey(
+          { name: "HKDF", hash: "SHA-256", salt: new Uint8Array(32), info: new TextEncoder().encode(MESSAGE_KEY_WRAP_INFO) },
+          hkdfKey,
+          { name: "AES-GCM", length: 256 },
+          false,
+          ["unwrapKey"],
+        );
+
+        // Unwrap message key
+        const messageKey = await crypto.subtle.unwrapKey(
+          "raw",
+          wrappedKey,
+          unwrapKey,
+          { name: "AES-GCM", iv: wrapIv },
+          { name: "AES-GCM", length: 256 },
+          false,
+          ["decrypt"],
+        );
+
+        // Decrypt content
+        const plaintext = await crypto.subtle.decrypt(
+          { name: "AES-GCM", iv: base64ToUint8(contentIv) },
+          messageKey,
+          base64ToUint8(encryptedContent),
+        );
+
+        const decryptResult: DecryptMessageResultData = {
+          plaintext: new TextDecoder().decode(plaintext),
+        };
+
+        postResult(decryptResult);
         break;
       }
 

@@ -28,6 +28,7 @@ export interface AuthUser {
   id: string;
   email: string;
   displayName: string;
+  x25519PublicKey: string; // base64 — used to include self in recipient list when sending messages
 }
 
 interface AuthState {

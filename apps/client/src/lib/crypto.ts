@@ -16,7 +16,11 @@ import type {
   RegisterResultData,
   LoginDecryptResultData,
   ChangePasswordResultData,
+  EncryptMessageResultData,
+  DecryptMessageResultData,
 } from "@tether/shared";
+
+export type { EncryptMessageResultData, DecryptMessageResultData };
 
 // ============================================================
 // Worker instantiation (Vite module worker pattern)
@@ -249,6 +253,43 @@ export function changePassword(
     },
     onProgress,
   );
+}
+
+/**
+ * Encrypts a plaintext message for multiple recipients using ephemeral X25519 ECDH.
+ * For each recipient, a fresh ephemeral key pair is generated and the message key
+ * is wrapped using HKDF-derived AES-256-GCM.
+ *
+ * The sender should include themselves in the recipients list using their own
+ * x25519PublicKey so they can decrypt their own messages later.
+ *
+ * Requires keys to have been unlocked via loginDecrypt() first.
+ *
+ * @param plaintext   The plaintext message to encrypt
+ * @param recipients  Array of {userId, x25519PublicKey} for each intended recipient
+ */
+export function encryptMessage(
+  plaintext: string,
+  recipients: Array<{ userId: string; x25519PublicKey: string }>,
+): Promise<EncryptMessageResultData> {
+  return call<EncryptMessageResultData>("ENCRYPT_MESSAGE", { plaintext, recipients });
+}
+
+/**
+ * Decrypts an encrypted message using the cached private key.
+ * Reverses the ECDH + HKDF + AES-256-GCM wrap to recover the plaintext.
+ *
+ * Requires keys to have been unlocked via loginDecrypt() first.
+ *
+ * @param payload  The encrypted message envelope data (content + recipient key info)
+ */
+export function decryptMessage(payload: {
+  encryptedContent: string;
+  contentIv: string;
+  encryptedMessageKey: string;
+  ephemeralPublicKey: string;
+}): Promise<DecryptMessageResultData> {
+  return call<DecryptMessageResultData>("DECRYPT_MESSAGE", payload);
 }
 
 /**
