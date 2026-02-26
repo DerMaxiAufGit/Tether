@@ -30,8 +30,8 @@ Requirements for Milestone 1 (MVP). Each maps to roadmap phases.
 
 ### Direct Messages
 
-- [ ] **DM-01**: User can send and receive 1:1 E2EE direct messages
-- [ ] **DM-02**: User can start a DM conversation with any user sharing a server
+- [x] **DM-01**: User can send and receive 1:1 E2EE direct messages
+- [x] **DM-02**: User can start a DM conversation with any user sharing a server
 
 ### Messaging
 
@@ -132,8 +132,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CHAN-01 | Phase 2 | Pending |
 | CHAN-02 | Phase 3 | Complete |
 | CHAN-03 | Phase 5 | Pending |
-| DM-01 | Phase 3 | Pending |
-| DM-02 | Phase 3 | Pending |
+| DM-01 | Phase 3 | Complete |
+| DM-02 | Phase 3 | Complete |
 | MSG-01 | Phase 3 | Complete |
 | MSG-02 | Phase 4 | Pending |
 | MSG-03 | Phase 4 | Pending |

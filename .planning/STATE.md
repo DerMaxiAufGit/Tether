@@ -1,3 +1,16 @@
+---
+gsd_state_version: 1.0
+milestone: v1.0
+milestone_name: milestone
+status: unknown
+last_updated: "2026-02-26T09:02:38.110Z"
+progress:
+  total_phases: 3
+  completed_phases: 0
+  total_plans: 22
+  completed_plans: 16
+---
+
 # Project State
 
 ## Project Reference
@@ -10,9 +23,9 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 ## Current Position
 
 Phase: 3 of 7 (E2EE Text Messaging)
-Plan: 2 of N in current phase (03-01, 03-02 complete)
+Plan: 4 of N in current phase (03-01, 03-02, 03-03, 03-04 complete)
 Status: In progress
-Last activity: 2026-02-26 — Completed 03-02-PLAN.md (Message REST API + Socket.IO channel rooms)
+Last activity: 2026-02-26 — Completed 03-04-PLAN.md (DM schema + endpoints + client hooks)
 
 Progress: [████░░░░░░] 32% (14/38 plans complete)
 
@@ -36,6 +49,7 @@ Progress: [████░░░░░░] 32% (14/38 plans complete)
 - Trend: Consistent fast delivery; API plans remain at 2 min with clear patterns to follow
 
 *Updated after each plan completion*
+| Phase 03-e2ee-text-messaging P04 | 5 | 2 tasks | 11 files |
 
 ## Accumulated Context
 
@@ -110,6 +124,10 @@ Recent decisions affecting current work:
 - 03-02: Cursor pagination resolves cursor message's createdAt then uses lt() — avoids assuming UUID ordering
 - 03-02: server:subscribe extended to also join text channel rooms for the new server — prevents gap after invite join
 - 03-02: channel:subscribe verifies DB membership before socket.join() — mirrors server:subscribe security gate pattern
+- [Phase 03-04]: DM channels reuse message endpoints: DM messages go through /api/channels/:channelId/messages — no separate DM message API needed
+- [Phase 03-04]: nullable serverId: channels.serverId becomes nullable to support DM channels; null guard added in PATCH/DELETE routes
+- [Phase 03-04]: server-sharing validation: users must share at least one server to DM each other (prevents unsolicited DMs)
+- [Phase 03-04]: socketsJoin on DM creation: io.to(user:{id}).socketsJoin(channel:{id}) adds both users to room immediately without reconnect
 
 ### Pending Todos
 
@@ -121,6 +139,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-26T08:52:51Z
-Stopped at: Completed 03-02-PLAN.md (Message REST API + Socket.IO channel rooms). Server-side message pipeline complete.
+Last session: 2026-02-26T09:01:20Z
+Stopped at: Completed 03-04-PLAN.md (DM schema + endpoints + client hooks). DM channel foundation ready for DM UI.
 Resume file: None
