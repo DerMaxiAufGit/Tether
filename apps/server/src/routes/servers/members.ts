@@ -68,6 +68,7 @@ export default async function serverMembersRoute(fastify: FastifyInstance): Prom
             email: users.email,
             avatarUrl: users.avatarUrl,
             status: users.status,
+            x25519PublicKey: users.x25519PublicKey,
           },
         })
         .from(serverMembers)
@@ -79,6 +80,11 @@ export default async function serverMembersRoute(fastify: FastifyInstance): Prom
       const members = memberRows.map((m) => ({
         ...m,
         isAdmin: adminIdSet.has(m.id),
+        // Convert bytea Buffer to base64 string for transport
+        user: {
+          ...m.user,
+          x25519PublicKey: (m.user.x25519PublicKey as unknown as Buffer).toString("base64"),
+        },
       }));
 
       return reply.code(200).send({ members });

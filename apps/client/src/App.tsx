@@ -17,6 +17,7 @@ import WelcomePage from "@/pages/WelcomePage";
 import AppShell from "@/pages/AppShell";
 import ServerView from "@/pages/server/ServerView";
 import ServerSettings from "@/pages/server/settings/ServerSettings";
+import ChannelView from "@/pages/server/ChannelView";
 
 // ============================================================
 // Route guards
@@ -89,18 +90,6 @@ function AuthLoadingScreen() {
 }
 
 // ============================================================
-// Channel placeholder (shown when no channel is selected in a server)
-// ============================================================
-
-function ChannelPlaceholder() {
-  return (
-    <div className="flex-1 flex items-center justify-center h-full">
-      <p className="text-zinc-500 text-sm">Select a channel to start chatting</p>
-    </div>
-  );
-}
-
-// ============================================================
 // App routes
 // ============================================================
 
@@ -153,9 +142,16 @@ function AppRoutes() {
         {/* Server selected — show server view (channel panel + chat area) */}
         <Route path="servers/:serverId" element={<ServerView />}>
           {/* No channel selected — show placeholder */}
-          <Route index element={<ChannelPlaceholder />} />
+          <Route
+            index
+            element={
+              <div className="flex-1 flex items-center justify-center h-full">
+                <p className="text-zinc-500 text-sm">Select a channel to start chatting</p>
+              </div>
+            }
+          />
           {/* Channel selected — chat view (Phase 3) */}
-          <Route path="channels/:channelId" element={<ChannelPlaceholder />} />
+          <Route path="channels/:channelId" element={<ChannelView />} />
         </Route>
         {/* Server settings — full-page, inside AppShell so icon strip stays visible */}
         <Route path="servers/:serverId/settings" element={<ServerSettings />} />

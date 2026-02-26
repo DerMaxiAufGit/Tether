@@ -48,6 +48,7 @@ export interface ServerMemberResponse {
     email: string;
     avatarUrl: string | null;
     status: string | null;
+    x25519PublicKey: string; // base64 — required for E2EE message encryption to this recipient
   };
 }
 
