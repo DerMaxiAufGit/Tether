@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-02-26T09:02:38.110Z"
+last_updated: "2026-02-26T09:02:50Z"
 progress:
   total_phases: 3
   completed_phases: 0
@@ -124,6 +124,10 @@ Recent decisions affecting current work:
 - 03-02: Cursor pagination resolves cursor message's createdAt then uses lt() — avoids assuming UUID ordering
 - 03-02: server:subscribe extended to also join text channel rooms for the new server — prevents gap after invite join
 - 03-02: channel:subscribe verifies DB membership before socket.join() — mirrors server:subscribe security gate pattern
+- 03-03: Pages stored newest-first; flattened with double-reverse at display time so oldest messages render first without API changes
+- 03-03: Stable wrapper reference (onMessageCreatedWrapper) required for socket.off() on async handlers — React StrictMode pitfall
+- 03-03: useSendMessage preserves sender's plaintext from mutation variables for optimistic display, avoids redundant self-decryption
+- 03-03: message:created handler skips sender's own messages (data.senderId === user?.id) — REST broadcast includes sender; client deduplicates
 - [Phase 03-04]: DM channels reuse message endpoints: DM messages go through /api/channels/:channelId/messages — no separate DM message API needed
 - [Phase 03-04]: nullable serverId: channels.serverId becomes nullable to support DM channels; null guard added in PATCH/DELETE routes
 - [Phase 03-04]: server-sharing validation: users must share at least one server to DM each other (prevents unsolicited DMs)
@@ -139,6 +143,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-26T09:01:20Z
-Stopped at: Completed 03-04-PLAN.md (DM schema + endpoints + client hooks). DM channel foundation ready for DM UI.
+Last session: 2026-02-26T08:55:56Z
+Stopped at: Completed 03-03-PLAN.md (client message hooks: useMessages, useSendMessage, useDeleteMessage + socket listeners).
 Resume file: None
