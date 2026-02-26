@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { db } from "../../db/client.js";
-import { channels, serverMembers, messages, messageRecipientKeys, users } from "../../db/schema.js";
+import { channels, serverMembers, dmParticipants, messages, messageRecipientKeys, users } from "../../db/schema.js";
 import { eq, and, lt, desc } from "drizzle-orm";
 
 /**
@@ -54,21 +54,35 @@ export default async function listMessagesRoute(fastify: FastifyInstance): Promi
         return reply.code(404).send({ error: "Channel not found" });
       }
 
-      if (channel.type !== "text") {
-        return reply.code(400).send({ error: "Messages can only be listed for text channels" });
+      if (channel.type !== "text" && channel.type !== "dm") {
+        return reply.code(400).send({ error: "Messages can only be listed for text or DM channels" });
       }
 
-      // Verify the authenticated user is a member of the owning server
-      const [membership] = await db
-        .select({ id: serverMembers.id })
-        .from(serverMembers)
-        .where(
-          and(eq(serverMembers.serverId, channel.serverId), eq(serverMembers.userId, userId)),
-        )
-        .limit(1);
+      // Verify access: DM channels check dmParticipants; server channels check serverMembers
+      if (channel.type === "dm") {
+        const [dmMembership] = await db
+          .select({ id: dmParticipants.id })
+          .from(dmParticipants)
+          .where(
+            and(eq(dmParticipants.channelId, channelId), eq(dmParticipants.userId, userId)),
+          )
+          .limit(1);
 
-      if (!membership) {
-        return reply.code(403).send({ error: "You are not a member of this server" });
+        if (!dmMembership) {
+          return reply.code(403).send({ error: "You are not a participant in this DM" });
+        }
+      } else {
+        const [membership] = await db
+          .select({ id: serverMembers.id })
+          .from(serverMembers)
+          .where(
+            and(eq(serverMembers.serverId, channel.serverId!), eq(serverMembers.userId, userId)),
+          )
+          .limit(1);
+
+        if (!membership) {
+          return reply.code(403).send({ error: "You are not a member of this server" });
+        }
       }
 
       // Resolve cursor: if `before` is provided, look up its createdAt timestamp

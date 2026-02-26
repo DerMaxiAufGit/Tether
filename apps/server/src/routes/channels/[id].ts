@@ -53,6 +53,11 @@ export default async function channelByIdRoute(fastify: FastifyInstance): Promis
 
       const { serverId } = channel;
 
+      // DM channels cannot be edited via this route
+      if (!serverId) {
+        return reply.code(400).send({ error: "DM channels cannot be edited" });
+      }
+
       // Verify user is a member of the server
       const [membership] = await db
         .select({ id: serverMembers.id })
@@ -124,6 +129,11 @@ export default async function channelByIdRoute(fastify: FastifyInstance): Promis
       }
 
       const { serverId } = channel;
+
+      // DM channels cannot be deleted via this route
+      if (!serverId) {
+        return reply.code(400).send({ error: "DM channels cannot be deleted via this endpoint" });
+      }
 
       // Verify user is a member of the server
       const [membership] = await db

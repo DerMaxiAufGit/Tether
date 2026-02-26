@@ -99,7 +99,6 @@ export type NewServer = InferInsertModel<typeof servers>;
 export const channels = pgTable("channels", {
   id: uuid("id").primaryKey().defaultRandom(),
   serverId: uuid("server_id")
-    .notNull()
     .references(() => servers.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   type: text("type").notNull().default("text"), // "text" | "voice" | "dm"
@@ -163,6 +162,30 @@ export const messageRecipientKeys = pgTable(
 
 export type MessageRecipientKey = InferSelectModel<typeof messageRecipientKeys>;
 export type NewMessageRecipientKey = InferInsertModel<typeof messageRecipientKeys>;
+
+// ---------------------------------------------------------------------------
+// dm_participants — Two-user join table for DM channels
+// DM channels have serverId = null and type = "dm"
+// ---------------------------------------------------------------------------
+
+export const dmParticipants = pgTable(
+  "dm_participants",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    channelId: uuid("channel_id")
+      .notNull()
+      .references(() => channels.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+  },
+  (t) => [
+    uniqueIndex("dm_participants_channel_user_idx").on(t.channelId, t.userId),
+  ],
+);
+
+export type DmParticipant = InferSelectModel<typeof dmParticipants>;
+export type NewDmParticipant = InferInsertModel<typeof dmParticipants>;
 
 // ---------------------------------------------------------------------------
 // server_members — Membership join table
