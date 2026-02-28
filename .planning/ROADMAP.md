@@ -76,7 +76,7 @@ Plans:
   3. User can open a DM conversation with any server-sharing user and exchange encrypted messages that only the two participants can read
   4. User can delete their own message and it is removed for all participants immediately
   5. Messages sent while a recipient is offline are delivered upon reconnection and decrypt correctly
-**Plans**: 7 plans
+**Plans**: 8 plans
 
 Plans:
 - [ ] 03-01-PLAN.md — Shared message types, crypto worker encrypt/decrypt, AuthUser x25519PublicKey
@@ -86,6 +86,7 @@ Plans:
 - [ ] 03-05-PLAN.md — Text channel UI (MessageList, MessageItem, MessageInput, ChannelView, CryptoUnlockPrompt)
 - [ ] 03-06-PLAN.md — DM UI (DMLayout, DMList, DMView, server strip icon, member context menu)
 - [ ] 03-07-PLAN.md — Integration fixes, DM real-time updates, human verification checkpoint
+- [ ] 03-08-PLAN.md — UAT gap closure: fix broadcast envelope shape for real-time message delivery
 
 ### Phase 4: Presence and Messaging UX
 **Goal**: Users see who is online, get notified of activity directed at them, can see when others are typing, and can react to messages — the real-time social layer that makes the platform feel alive.
@@ -171,7 +172,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 |-------|----------------|--------|-----------|
 | 1. Foundation | 0/7 | Planned | - |
 | 2. Servers and Channels | 0/8 | Planned | - |
-| 3. E2EE Text Messaging | 6/7 | In Progress|  |
+| 3. E2EE Text Messaging | 6/8 | In Progress|  |
 | 4. Presence and Messaging UX | 0/5 | Not started | - |
 | 5. Voice and Video | 0/7 | Not started | - |
 | 6. Files and Media | 0/4 | Not started | - |
