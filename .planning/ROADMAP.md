@@ -14,7 +14,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [ ] **Phase 1: Foundation** - Monorepo skeleton, key hierarchy, auth with PBKDF2/HKDF derivation, Docker Compose with Coturn isolation, authenticated Socket.IO
 - [ ] **Phase 2: Servers and Channels** - Server creation, invite system, member management, channel CRUD
-- [ ] **Phase 3: E2EE Text Messaging** - Per-message hybrid encryption, DMs, message send/receive/delete over real-time relay
+- [x] **Phase 3: E2EE Text Messaging** - Per-message hybrid encryption, DMs, message send/receive/delete over real-time relay
 - [ ] **Phase 4: Presence and Messaging UX** - Online/offline presence, typing indicators, unread tracking, emoji reactions
 - [ ] **Phase 5: Voice and Video** - WebRTC P2P mesh, Coturn TURN credentials, camera/screen share, voice activity
 - [ ] **Phase 6: Files and Media** - Encrypted file uploads to MinIO, inline image previews, profile avatars
@@ -79,14 +79,14 @@ Plans:
 **Plans**: 8 plans
 
 Plans:
-- [ ] 03-01-PLAN.md — Shared message types, crypto worker encrypt/decrypt, AuthUser x25519PublicKey
-- [ ] 03-02-PLAN.md — Message REST API (create, list, delete) + Socket.IO broadcast + channel room join
-- [ ] 03-03-PLAN.md — Client message hooks (useMessages, useSendMessage, useDeleteMessage) + socket listeners
-- [ ] 03-04-PLAN.md — DM schema (nullable serverId, dm_participants) + DM REST API + client hooks
-- [ ] 03-05-PLAN.md — Text channel UI (MessageList, MessageItem, MessageInput, ChannelView, CryptoUnlockPrompt)
-- [ ] 03-06-PLAN.md — DM UI (DMLayout, DMList, DMView, server strip icon, member context menu)
-- [ ] 03-07-PLAN.md — Integration fixes, DM real-time updates, human verification checkpoint
-- [ ] 03-08-PLAN.md — UAT gap closure: fix broadcast envelope shape for real-time message delivery
+- [x] 03-01-PLAN.md — Shared message types, crypto worker encrypt/decrypt, AuthUser x25519PublicKey
+- [x] 03-02-PLAN.md — Message REST API (create, list, delete) + Socket.IO broadcast + channel room join
+- [x] 03-03-PLAN.md — Client message hooks (useMessages, useSendMessage, useDeleteMessage) + socket listeners
+- [x] 03-04-PLAN.md — DM schema (nullable serverId, dm_participants) + DM REST API + client hooks
+- [x] 03-05-PLAN.md — Text channel UI (MessageList, MessageItem, MessageInput, ChannelView, CryptoUnlockPrompt)
+- [x] 03-06-PLAN.md — DM UI (DMLayout, DMList, DMView, server strip icon, member context menu)
+- [x] 03-07-PLAN.md — Integration fixes, DM real-time updates, human verification checkpoint
+- [x] 03-08-PLAN.md — UAT gap closure: fix broadcast envelope shape for real-time message delivery
 
 ### Phase 4: Presence and Messaging UX
 **Goal**: Users see who is online, get notified of activity directed at them, can see when others are typing, and can react to messages — the real-time social layer that makes the platform feel alive.
@@ -172,7 +172,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 |-------|----------------|--------|-----------|
 | 1. Foundation | 0/7 | Planned | - |
 | 2. Servers and Channels | 0/8 | Planned | - |
-| 3. E2EE Text Messaging | 6/8 | In Progress|  |
+| 3. E2EE Text Messaging | 8/8 | Complete | 2026-03-01 |
 | 4. Presence and Messaging UX | 0/5 | Not started | - |
 | 5. Voice and Video | 0/7 | Not started | - |
 | 6. Files and Media | 0/4 | Not started | - |
