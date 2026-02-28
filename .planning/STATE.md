@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-02-26T09:16:13.550Z"
+last_updated: "2026-02-28T23:06:34Z"
 progress:
   total_phases: 3
   completed_phases: 0
   total_plans: 22
-  completed_plans: 19
+  completed_plans: 20
 ---
 
 # Project State
@@ -23,11 +23,11 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 ## Current Position
 
 Phase: 3 of 7 (E2EE Text Messaging)
-Plan: 6 of 7 in current phase (03-01, 03-02, 03-03, 03-04, 03-05, 03-06 complete)
-Status: In progress
-Last activity: 2026-02-26 — Completed 03-06-PLAN.md (DM UI: layout, list, view, server strip icon, member context menu, routes)
+Plan: 8 of 8 in current phase (03-01, 03-02, 03-03, 03-04, 03-05, 03-06, 03-07, 03-08 complete)
+Status: Phase complete
+Last activity: 2026-02-28 — Completed 03-08-PLAN.md (gap closure: real-time message delivery fix)
 
-Progress: [████░░░░░░] 37% (16/38 plans complete)
+Progress: [████░░░░░░] 38% (20/38 plans complete)
 
 ## Performance Metrics
 
@@ -140,6 +140,8 @@ Recent decisions affecting current work:
 - [Phase 03-06]: DM icon placed between HomeButton and divider; indigo color distinguishes from home button (cyan)
 - [Phase 03-06]: New DM dialog: queries members from first server (serverIds[0]) — simple approach avoiding dynamic hook counts
 - [Phase 03-06]: DMView recipients: exactly 2 (participant + self) from DMConversationResponse.participant.x25519PublicKey + useAuth.user.x25519PublicKey
+- [Phase 03-08]: Two-envelope pattern: REST response uses MessageResponse (sender key only); Socket.IO broadcast uses MessageEnvelope (all recipient keys) — different contracts for different consumers
+- [Phase 03-08]: Server queries ALL recipient keys post-transaction for broadcast (separate from sender-only query for REST 201 response)
 
 ### Pending Todos
 
@@ -151,6 +153,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-26T09:10:11Z
-Stopped at: Completed 03-05-PLAN.md (message UI: MessageList, MessageItem, MessageInput, ChannelView + route wiring).
+Last session: 2026-02-28T23:06:34Z
+Stopped at: Completed 03-08-PLAN.md (gap closure: real-time message delivery fix — server broadcast envelope + client handler hardening).
 Resume file: None
