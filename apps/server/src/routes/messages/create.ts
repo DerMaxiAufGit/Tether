@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { db } from "../../db/client.js";
 import { channels, serverMembers, dmParticipants, messages, messageRecipientKeys, users } from "../../db/schema.js";
 import { eq, and } from "drizzle-orm";
+import type { MessageEnvelope } from "@tether/shared";
 
 interface RecipientKeyInput {
   recipientUserId: string;
@@ -166,7 +167,7 @@ export default async function createMessageRoute(fastify: FastifyInstance): Prom
           )
           .limit(1);
 
-        // Build the MessageEnvelope for broadcast and response (all bytes as base64)
+        // Build the REST response envelope (MessageResponse shape — sender's key only)
         const envelope = {
           id: message.id,
           channelId: message.channelId,
@@ -187,8 +188,37 @@ export default async function createMessageRoute(fastify: FastifyInstance): Prom
             : null,
         };
 
+        // Query ALL recipient keys for the Socket.IO broadcast envelope
+        const allKeys = await db
+          .select({
+            recipientUserId: messageRecipientKeys.recipientUserId,
+            encryptedMessageKey: messageRecipientKeys.encryptedMessageKey,
+            ephemeralPublicKey: messageRecipientKeys.ephemeralPublicKey,
+          })
+          .from(messageRecipientKeys)
+          .where(eq(messageRecipientKeys.messageId, message.id));
+
+        // Build broadcast envelope matching the MessageEnvelope interface exactly
+        const broadcastEnvelope: MessageEnvelope = {
+          messageId: message.id,
+          channelId: message.channelId,
+          senderId: message.senderId,
+          senderDisplayName: sender?.displayName ?? "",
+          senderAvatarUrl: sender?.avatarUrl ?? null,
+          encryptedContent: message.encryptedContent?.toString("base64") ?? "",
+          contentIv: message.contentIv?.toString("base64") ?? "",
+          contentAlgorithm: message.contentAlgorithm,
+          epoch: message.epoch,
+          createdAt: message.createdAt instanceof Date ? message.createdAt.toISOString() : String(message.createdAt),
+          recipientKeys: allKeys.map((k) => ({
+            recipientUserId: k.recipientUserId,
+            encryptedMessageKey: k.encryptedMessageKey?.toString("base64") ?? "",
+            ephemeralPublicKey: k.ephemeralPublicKey?.toString("base64") ?? "",
+          })),
+        };
+
         // Broadcast to all channel room members (client deduplicates via optimistic ID)
-        fastify.io.to(`channel:${channelId}`).emit("message:created", envelope);
+        fastify.io.to(`channel:${channelId}`).emit("message:created", broadcastEnvelope);
 
         return reply.code(201).send({ message: envelope });
       },
