@@ -201,11 +201,12 @@ export function SocketProvider({ children }: SocketProviderProps) {
       // Skip if this message was sent by the current user (optimistic update handles it)
       if (data.senderId === user?.id) return;
 
-      // Find the current user's recipient key from the envelope
-      const myKey = data.recipientKeys.find((k) => k.recipientUserId === user?.id);
-      if (!myKey) return; // Not a recipient
-
       try {
+        // Find the current user's recipient key from the envelope
+        // Inside try/catch so a malformed payload (missing recipientKeys) is caught gracefully
+        const myKey = data.recipientKeys.find((k) => k.recipientUserId === user?.id);
+        if (!myKey) return; // Not a recipient
+
         const result = await decryptMessage({
           encryptedContent: data.encryptedContent,
           contentIv: data.contentIv,
