@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-03-01T02:04:25Z"
+last_updated: "2026-03-01T02:13:08Z"
 progress:
   total_phases: 7
   completed_phases: 3
   total_plans: 43
-  completed_plans: 24
+  completed_plans: 25
 ---
 
 # Project State
@@ -18,16 +18,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-02-25)
 
 **Core value:** Messages are zero-knowledge to the server — only authenticated users with their credentials can decrypt message content.
-**Current focus:** Phase 4 (Presence and Messaging UX) — Plan 3/5 complete
+**Current focus:** Phase 4 (Presence and Messaging UX) — Plan 4/5 complete
 
 ## Current Position
 
 Phase: 4 of 7 (Presence and Messaging UX) — In progress
-Plan: 3/5 complete (04-03 done)
+Plan: 4/5 complete (04-04 done)
 Status: In progress
-Last activity: 2026-03-01 — Completed 04-03-PLAN.md (typing indicators)
+Last activity: 2026-03-01 — Completed 04-04-PLAN.md (unread message tracking)
 
-Progress: [█████░░░░░] 56% (24/43 plans complete)
+Progress: [█████░░░░░] 58% (25/43 plans complete)
 
 ## Performance Metrics
 
@@ -155,6 +155,11 @@ Recent decisions affecting current work:
 - 04-03: Redis Sets chosen over simple keys for multi-instance typing support; EXPIRE 30s TTL for crash auto-cleanup
 - 04-03: Disconnect handler in typing.ts iterates socket.rooms to clean up all channels at once
 - 04-03: CSS custom animation via @theme --animate-* + @keyframes in Tailwind v4 index.css (animate-bounce-dot)
+- 04-04: Scroll-to-bottom clears unread (not channel open) — more intentional; prevents accidental mark-as-read
+- 04-04: channel:read socket event used for mark-read (not REST) — avoids HTTP request on every scroll
+- 04-04: hasMention detected client-side on decrypted plaintext — server never sees plaintext (E2EE)
+- 04-04: CASE COUNT SQL aggregate: one query computes all channel unread counts via LEFT JOIN on channelReadStates + messages
+- 04-04: unread:cleared emitted to user:{userId} room after mark-read — cross-tab sync without polling
 
 ### Pending Todos
 
@@ -166,6 +171,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-01T02:04:25Z
-Stopped at: Completed 04-03-PLAN.md (typing indicators — Redis Sets, useTyping, TypingIndicator, bouncing dots)
+Last session: 2026-03-01T02:13:08Z
+Stopped at: Completed 04-04-PLAN.md (unread tracking — channelReadStates table, unread badges, server icon dots, scroll-to-bottom clearing)
 Resume file: None
