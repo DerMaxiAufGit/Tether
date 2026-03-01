@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-03-01T02:13:08Z"
+last_updated: "2026-03-01T02:24:00Z"
 progress:
   total_phases: 7
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 43
-  completed_plans: 25
+  completed_plans: 26
 ---
 
 # Project State
@@ -18,16 +18,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-02-25)
 
 **Core value:** Messages are zero-knowledge to the server — only authenticated users with their credentials can decrypt message content.
-**Current focus:** Phase 4 (Presence and Messaging UX) — Plan 4/5 complete
+**Current focus:** Phase 5 (Voice and Video) — not started
 
 ## Current Position
 
-Phase: 4 of 7 (Presence and Messaging UX) — In progress
-Plan: 4/5 complete (04-04 done)
-Status: In progress
-Last activity: 2026-03-01 — Completed 04-04-PLAN.md (unread message tracking)
+Phase: 4 of 7 (Presence and Messaging UX) — Phase complete
+Plan: 5/5 complete (04-05 done)
+Status: Phase complete — ready for Phase 5
+Last activity: 2026-03-01 — Completed 04-05-PLAN.md (encrypted emoji reactions)
 
-Progress: [█████░░░░░] 58% (25/43 plans complete)
+Progress: [██████░░░░] 60% (26/43 plans complete)
 
 ## Performance Metrics
 
@@ -160,6 +160,10 @@ Recent decisions affecting current work:
 - 04-04: hasMention detected client-side on decrypted plaintext — server never sees plaintext (E2EE)
 - 04-04: CASE COUNT SQL aggregate: one query computes all channel unread counts via LEFT JOIN on channelReadStates + messages
 - 04-04: unread:cleared emitted to user:{userId} room after mark-read — cross-tab sync without polling
+- 04-05: ENCRYPT_REACTION reuses MESSAGE_KEY_WRAP_INFO and identical ECDH/HKDF/AES-GCM wrap pattern from ENCRYPT_MESSAGE — no new constant needed
+- 04-05: Reaction plaintext = JSON.stringify({ emoji, reactorId }) — reactorId in ciphertext prevents emoji substitution attacks
+- 04-05: Reaction state is socket-driven only (no REST fetch on load) — reactions live in useState, populated from real-time events; pre-existing reactions not loaded (v1 acceptable)
+- 04-05: Stable addedWrapper reference in useEffect closure for socket.off() with async reaction:added handler (same pattern as 03-03 message:created)
 
 ### Pending Todos
 
@@ -171,6 +175,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-01T02:13:08Z
-Stopped at: Completed 04-04-PLAN.md (unread tracking — channelReadStates table, unread badges, server icon dots, scroll-to-bottom clearing)
+Last session: 2026-03-01T02:24:00Z
+Stopped at: Completed 04-05-PLAN.md (encrypted emoji reactions — reaction tables, ENCRYPT_REACTION/DECRYPT_REACTION crypto, emoji picker, reaction pills, real-time broadcast)
 Resume file: None
