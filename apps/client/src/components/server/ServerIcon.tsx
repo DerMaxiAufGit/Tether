@@ -8,6 +8,7 @@
 
 import { useNavigate } from "react-router-dom";
 import type { ServerResponse } from "@tether/shared";
+import { useServerHasUnread } from "@/hooks/useUnread";
 
 // ============================================================
 // Color derivation from server ID
@@ -32,6 +33,7 @@ interface ServerIconProps {
 
 export default function ServerIcon({ server, isSelected }: ServerIconProps) {
   const navigate = useNavigate();
+  const { totalUnread, hasMention } = useServerHasUnread(server.id);
 
   const hue = stringToHue(server.id);
   const bg = `hsl(${hue}, 45%, 35%)`;
@@ -82,6 +84,18 @@ export default function ServerIcon({ server, isSelected }: ServerIconProps) {
       >
         {initials || "?"}
       </button>
+
+      {/* Unread indicator dot — shown when any channel has unreads and server is not selected */}
+      {totalUnread > 0 && !isSelected && (
+        <div
+          className={`
+            absolute -right-1 top-1/2 -translate-y-1/2
+            w-2.5 h-2.5 rounded-full border-2 border-zinc-900
+            ${hasMention ? "bg-red-500" : "bg-white"}
+          `}
+          aria-hidden="true"
+        />
+      )}
     </div>
   );
 }

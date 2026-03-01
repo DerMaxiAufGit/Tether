@@ -15,6 +15,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { useMessages } from "@/hooks/useMessages";
 import { useAuth } from "@/hooks/useAuth";
 import { useDeleteMessage } from "@/hooks/useMessages";
+import { useMarkChannelRead } from "@/hooks/useUnread";
 import MessageItem from "./MessageItem";
 import NewMessagesButton from "./NewMessagesButton";
 
@@ -55,13 +56,16 @@ function MessageSkeleton() {
 interface MessageListProps {
   channelId: string;
   channelName: string;
+  /** Server ID — required for unread tracking. Pass from ChannelView outlet context. */
+  serverId?: string;
 }
 
-export default function MessageList({ channelId, channelName }: MessageListProps) {
+export default function MessageList({ channelId, channelName, serverId }: MessageListProps) {
   const { user } = useAuth();
   const { messages, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
     useMessages(channelId);
   const deleteMessage = useDeleteMessage(channelId);
+  const markRead = useMarkChannelRead();
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const topSentinelRef = useRef<HTMLDivElement>(null);
@@ -69,6 +73,9 @@ export default function MessageList({ channelId, channelName }: MessageListProps
 
   // Track whether user is at (or near) the bottom
   const isAtBottomRef = useRef(true);
+
+  // Debounce timer ref for mark-read calls
+  const markReadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Count of new messages received while user is scrolled up
   const [newMessageCount, setNewMessageCount] = useState(0);
@@ -91,12 +98,22 @@ export default function MessageList({ channelId, channelName }: MessageListProps
     return distanceFromBottom <= AT_BOTTOM_THRESHOLD;
   }, []);
 
+  // Debounced mark-read: fires 100ms after user stops scrolling at bottom
+  const debouncedMarkRead = useCallback(() => {
+    if (!serverId) return;
+    if (markReadTimerRef.current) clearTimeout(markReadTimerRef.current);
+    markReadTimerRef.current = setTimeout(() => {
+      markRead(channelId, serverId);
+    }, 100);
+  }, [channelId, serverId, markRead]);
+
   const handleScroll = useCallback(() => {
     isAtBottomRef.current = checkIsAtBottom();
     if (isAtBottomRef.current) {
       setNewMessageCount(0);
+      debouncedMarkRead();
     }
-  }, [checkIsAtBottom]);
+  }, [checkIsAtBottom, debouncedMarkRead]);
 
   // ============================================================
   // Auto-scroll to bottom on initial load + new messages
@@ -115,8 +132,12 @@ export default function MessageList({ channelId, channelName }: MessageListProps
       hasScrolledToBottomRef.current = true;
       scrollToBottom("instant");
       isAtBottomRef.current = true;
+      // Mark channel as read on initial load (user sees latest messages)
+      if (serverId) {
+        markRead(channelId, serverId);
+      }
     }
-  }, [isLoading, messages.length, scrollToBottom]);
+  }, [isLoading, messages.length, scrollToBottom, channelId, serverId, markRead]);
 
   // When new messages arrive, scroll to bottom (if at bottom) or increment counter
   useEffect(() => {
@@ -134,10 +155,14 @@ export default function MessageList({ channelId, channelName }: MessageListProps
     // We detect this by checking if isAtBottom was true before the update
     if (isAtBottomRef.current) {
       scrollToBottom("smooth");
+      // Mark as read since user is at bottom and new messages are visible
+      if (serverId) {
+        markRead(channelId, serverId);
+      }
     } else {
       setNewMessageCount((prev) => prev + newCount);
     }
-  }, [messages.length, scrollToBottom]);
+  }, [messages.length, scrollToBottom, channelId, serverId, markRead]);
 
   // ============================================================
   // Infinite scroll — sentinel at the top

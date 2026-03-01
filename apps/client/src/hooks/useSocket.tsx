@@ -25,6 +25,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { decryptMessage } from "@/lib/crypto";
 import type { MessageEnvelope } from "@tether/shared";
 import type { DecryptedMessage } from "@/hooks/useMessages";
+import type { ChannelUnread } from "@/hooks/useUnread";
 
 // ============================================================
 // Socket.IO server URL
@@ -205,7 +206,13 @@ export function SocketProvider({ children }: SocketProviderProps) {
         // Find the current user's recipient key from the envelope
         // Inside try/catch so a malformed payload (missing recipientKeys) is caught gracefully
         const myKey = data.recipientKeys.find((k) => k.recipientUserId === user?.id);
-        if (!myKey) return; // Not a recipient
+        if (!myKey) {
+          console.warn("[ws:message:created] No recipient key for current user", {
+            userId: user?.id,
+            recipientUserIds: data.recipientKeys?.map((k) => k.recipientUserId),
+          });
+          return; // Not a recipient
+        }
 
         const result = await decryptMessage({
           encryptedContent: data.encryptedContent,
@@ -247,11 +254,49 @@ export function SocketProvider({ children }: SocketProviderProps) {
           },
         );
 
+        // Fallback: if no cache existed for this channel, trigger a refetch so
+        // the message still appears when the user navigates to the channel.
+        if (!queryClient.getQueryData(["messages", data.channelId])) {
+          void queryClient.invalidateQueries({ queryKey: ["messages", data.channelId] });
+        }
+
         // Also update DM list sort order when a new DM message arrives
         void queryClient.invalidateQueries({ queryKey: ["dms"] });
-      } catch {
-        // Decryption failed — skip appending; the message will appear on next query refetch
+
+        // Increment unread counts for all servers — the specific server will be
+        // identified when the unread query refetches. We invalidate broadly so
+        // any cached server's unread count picks up the new message.
+        void queryClient.invalidateQueries({ queryKey: ["unread"] });
+
+        // Mention detection: if the decrypted plaintext mentions the current user,
+        // update the hasMention flag in the unread cache for this channel.
+        // We scan all ["unread", serverId] queries in the cache to find the right server.
+        if (user && result.plaintext.includes(`@${user.displayName}`)) {
+          const queryCache = queryClient.getQueryCache();
+          const unreadQueries = queryCache.findAll({ queryKey: ["unread"] });
+          for (const query of unreadQueries) {
+            const cached = query.state.data as ChannelUnread[] | undefined;
+            if (!cached) continue;
+            const hasChannel = cached.some((u) => u.channelId === data.channelId);
+            if (hasChannel) {
+              queryClient.setQueryData<ChannelUnread[]>(
+                query.queryKey,
+                (old) =>
+                  old?.map((u) =>
+                    u.channelId === data.channelId ? { ...u, hasMention: true } : u,
+                  ) ?? [],
+              );
+            }
+          }
+        }
+      } catch (err) {
+        console.error("[ws:message:created] Handler failed:", err);
       }
+    };
+
+    // When another tab marks a channel as read, clear the unread count here too
+    const onUnreadCleared = (_data: { channelId: string }) => {
+      void queryClient.invalidateQueries({ queryKey: ["unread"] });
     };
 
     const onMessageDeleted = (data: { messageId: string; channelId: string }) => {
@@ -270,7 +315,16 @@ export function SocketProvider({ children }: SocketProviderProps) {
     };
 
     // Stable wrapper for the async handler — needed so socket.off() can match the exact reference
-    const onMessageCreatedWrapper = (data: MessageEnvelope) => { void onMessageCreated(data); };
+    const onMessageCreatedWrapper = (data: MessageEnvelope) => {
+      console.log("[ws] message:created RAW event received", {
+        messageId: data.messageId,
+        senderId: data.senderId,
+        channelId: data.channelId,
+        recipientKeys: data.recipientKeys?.length,
+        currentUserId: user?.id,
+      });
+      void onMessageCreated(data);
+    };
 
     socket.on("server:created", onServerCreated);
     socket.on("server:deleted", onServerDeleted);
@@ -284,6 +338,7 @@ export function SocketProvider({ children }: SocketProviderProps) {
     socket.on("channel:deleted", onChannelDeleted);
     socket.on("message:created", onMessageCreatedWrapper);
     socket.on("message:deleted", onMessageDeleted);
+    socket.on("unread:cleared", onUnreadCleared);
 
     return () => {
       socket.off("server:created", onServerCreated);
@@ -298,6 +353,7 @@ export function SocketProvider({ children }: SocketProviderProps) {
       socket.off("channel:deleted", onChannelDeleted);
       socket.off("message:created", onMessageCreatedWrapper);
       socket.off("message:deleted", onMessageDeleted);
+      socket.off("unread:cleared", onUnreadCleared);
     };
   }, [socket, queryClient, navigate, user]);
 

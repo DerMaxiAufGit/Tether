@@ -119,7 +119,7 @@ export default function ChannelView() {
       )}
 
       {/* Message list — flex-1, scrollable */}
-      <MessageList channelId={channelId} channelName={channelName} />
+      <MessageList channelId={channelId} channelName={channelName} serverId={serverId} />
 
       {/* Typing indicator — fixed height to prevent layout shift */}
       <div className="shrink-0 px-0">

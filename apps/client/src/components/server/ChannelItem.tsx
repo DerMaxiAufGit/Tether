@@ -12,6 +12,7 @@ import { Link } from "react-router-dom";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import type { ChannelResponse } from "@tether/shared";
+import { useChannelUnread } from "@/hooks/useUnread";
 
 // ============================================================
 // Icons
@@ -56,6 +57,8 @@ export default function ChannelItem({ channel, isSelected }: ChannelItemProps) {
     isDragging,
   } = useSortable({ id: channel.id });
 
+  const { unreadCount, hasMention } = useChannelUnread(channel.serverId, channel.id);
+
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -92,7 +95,12 @@ export default function ChannelItem({ channel, isSelected }: ChannelItemProps) {
         to={href}
         className={`
           flex-1 text-sm truncate
-          ${isSelected ? "text-zinc-100 font-medium" : ""}
+          ${isSelected
+            ? "text-zinc-100 font-medium"
+            : unreadCount > 0
+              ? "text-zinc-100 font-semibold"
+              : ""
+          }
         `}
         onClick={(e) => {
           // Don't navigate if dragging
@@ -106,6 +114,19 @@ export default function ChannelItem({ channel, isSelected }: ChannelItemProps) {
       >
         {channel.name}
       </Link>
+
+      {/* Unread badge — shown when there are unread messages */}
+      {unreadCount > 0 && (
+        <span
+          className={`
+            ml-auto shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-full
+            min-w-[18px] text-center leading-tight
+            ${hasMention ? "bg-red-500 text-white" : "bg-zinc-600 text-zinc-200"}
+          `}
+        >
+          {unreadCount > 99 ? "99+" : unreadCount}
+        </span>
+      )}
     </div>
   );
 }
