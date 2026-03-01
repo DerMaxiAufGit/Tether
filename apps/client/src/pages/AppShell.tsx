@@ -12,7 +12,18 @@
 
 import { Outlet } from "react-router-dom";
 import { SocketProvider } from "@/hooks/useSocket";
+import { useIdleDetection } from "@/hooks/useIdleDetection";
 import ServerList from "@/components/server/ServerList";
+
+// ============================================================
+// IdleDetector — null-rendering component, must live inside
+// SocketProvider so useIdleDetection can call useSocket()
+// ============================================================
+
+function IdleDetector() {
+  useIdleDetection();
+  return null;
+}
 
 // ============================================================
 // AppShell
@@ -21,6 +32,8 @@ import ServerList from "@/components/server/ServerList";
 export default function AppShell() {
   return (
     <SocketProvider>
+      {/* Idle detection — emits presence:idle / presence:active via socket */}
+      <IdleDetector />
       <div className="flex h-screen bg-zinc-950 overflow-hidden">
         {/* Persistent server icon strip */}
         <ServerList />
