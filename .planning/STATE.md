@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-03-01T00:10:00Z"
+last_updated: "2026-03-01T02:00:00Z"
 progress:
   total_phases: 7
   completed_phases: 3
   total_plans: 43
-  completed_plans: 21
+  completed_plans: 22
 ---
 
 # Project State
@@ -18,16 +18,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-02-25)
 
 **Core value:** Messages are zero-knowledge to the server — only authenticated users with their credentials can decrypt message content.
-**Current focus:** Phase 3 complete — next: Phase 4 (Presence and Messaging UX)
+**Current focus:** Phase 4 (Presence and Messaging UX) — Plan 1/5 complete
 
 ## Current Position
 
-Phase: 3 of 7 (E2EE Text Messaging) — COMPLETE
-Plan: 8/8 complete (03-01 through 03-08)
-Status: Phase verified (5/5 must-haves passed)
-Last activity: 2026-03-01 — Phase 3 verified, gap closure plan 03-08 executed
+Phase: 4 of 7 (Presence and Messaging UX) — In progress
+Plan: 1/5 complete (04-01 done)
+Status: In progress
+Last activity: 2026-03-01 — Completed 04-01-PLAN.md (presence foundation)
 
-Progress: [█████░░░░░] 49% (21/43 plans complete)
+Progress: [█████░░░░░] 51% (22/43 plans complete)
 
 ## Performance Metrics
 
@@ -142,6 +142,11 @@ Recent decisions affecting current work:
 - [Phase 03-06]: DMView recipients: exactly 2 (participant + self) from DMConversationResponse.participant.x25519PublicKey + useAuth.user.x25519PublicKey
 - [Phase 03-08]: Two-envelope pattern: REST response uses MessageResponse (sender key only); Socket.IO broadcast uses MessageEnvelope (all recipient keys) — different contracts for different consumers
 - [Phase 03-08]: Server queries ALL recipient keys post-transaction for broadcast (separate from sender-only query for REST 201 response)
+- 04-01: RedisClientType explicit annotation required on shared redis client export — TS2742 (inferred type too complex, references pnpm internal paths)
+- 04-01: Presence keys pattern locked: presence:count:{userId} (INCR/DECR integer), presence:idle:{userId} (flag, 15min TTL), presence:dnd:{userId} (flag, no TTL)
+- 04-01: Status resolution priority: offline (count<=0) > dnd > idle > online — resolveStatus() pure function in presence.ts
+- 04-01: 30-second grace period for offline broadcast — prevents flicker on page reload / tab switch
+- 04-01: Socket.IO supports multiple handlers on same event — presence.ts registers own disconnect handler (grace period) alongside connection.ts disconnect log
 
 ### Pending Todos
 
@@ -153,6 +158,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-01T00:10:00Z
-Stopped at: Phase 3 complete and verified. Ready for Phase 4.
+Last session: 2026-03-01T02:00:00Z
+Stopped at: Completed 04-01-PLAN.md (presence foundation — Redis INCR/DECR, PresenceDot, shared types)
 Resume file: None
