@@ -29,6 +29,10 @@ import type {
   ChangePasswordResultData,
   EncryptMessageResultData,
   DecryptMessageResultData,
+  RestoreKeysResultData,
+  ClearKeysResultData,
+  EncryptReactionResultData,
+  DecryptReactionResultData,
 } from "@tether/shared";
 
 // ============================================================
@@ -54,6 +58,69 @@ function base64ToUint8(base64: string): Uint8Array {
 
 function arrayBufferToBase64(buffer: ArrayBuffer): string {
   return uint8ToBase64(new Uint8Array(buffer));
+}
+
+// ============================================================
+// Key types
+// ============================================================
+
+interface UnwrappedKeys {
+  x25519PrivateKey: CryptoKey;
+  ed25519PrivateKey: CryptoKey;
+}
+
+// ============================================================
+// IndexedDB persistence for CryptoKey objects
+// CryptoKey objects support structured clone, so IndexedDB can
+// store even non-extractable keys. Cleared on logout.
+// ============================================================
+
+const IDB_NAME = "tether-crypto";
+const IDB_STORE = "keys";
+const IDB_KEY = "cached";
+
+function openDB(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(IDB_NAME, 1);
+    req.onupgradeneeded = () => {
+      req.result.createObjectStore(IDB_STORE);
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function persistKeys(keys: UnwrappedKeys): Promise<void> {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(IDB_STORE, "readwrite");
+    tx.objectStore(IDB_STORE).put(
+      { x25519PrivateKey: keys.x25519PrivateKey, ed25519PrivateKey: keys.ed25519PrivateKey },
+      IDB_KEY,
+    );
+    tx.oncomplete = () => { db.close(); resolve(); };
+    tx.onerror = () => { db.close(); reject(tx.error); };
+  });
+}
+
+async function loadKeys(): Promise<UnwrappedKeys | null> {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(IDB_STORE, "readonly");
+    const req = tx.objectStore(IDB_STORE).get(IDB_KEY);
+    req.onsuccess = () => { db.close(); resolve(req.result ?? null); };
+    req.onerror = () => { db.close(); reject(req.error); };
+  });
+}
+
+async function deleteKeys(): Promise<void> {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(IDB_STORE, "readwrite");
+    tx.objectStore(IDB_STORE).delete(IDB_KEY);
+    tx.oncomplete = () => { db.close(); resolve(); };
+    tx.onerror = () => { db.close(); reject(tx.error); };
+  });
 }
 
 // ============================================================
@@ -207,11 +274,6 @@ async function generateAndWrapKeypairs(
 // Private key unwrapping (decryption)
 // ============================================================
 
-interface UnwrappedKeys {
-  x25519PrivateKey: CryptoKey;
-  ed25519PrivateKey: CryptoKey;
-}
-
 /**
  * Decrypts and imports private keys.
  * AES-GCM decrypt will throw on wrong password (tag mismatch = DOMException).
@@ -358,8 +420,9 @@ self.onmessage = async (event: MessageEvent<CryptoWorkerRequest>) => {
             base64ToUint8(ed25519Iv),
           );
 
-          // Cache for Phase 3 use
+          // Cache in memory and persist to IndexedDB for reload survival
           _cachedKeys = unwrapped;
+          await persistKeys(unwrapped);
         } catch {
           // AES-GCM tag mismatch = wrong password
           postError("Decryption failed — incorrect password");
@@ -617,6 +680,202 @@ self.onmessage = async (event: MessageEvent<CryptoWorkerRequest>) => {
         };
 
         postResult(decryptResult);
+        break;
+      }
+
+      // ----------------------------------------------------------
+      // ENCRYPT_REACTION: Encrypt emoji reaction for multiple recipients
+      // Identical pattern to ENCRYPT_MESSAGE but plaintext = JSON.stringify({ emoji, reactorId })
+      // ----------------------------------------------------------
+      case "ENCRYPT_REACTION": {
+        if (!_cachedKeys) throw new Error("Keys not unlocked — call LOGIN_DECRYPT first");
+
+        const { emoji, reactorId, recipients: reactionRecipients } = payload;
+
+        // 1. Generate fresh AES-256-GCM reaction key (extractable for wrapping)
+        const reactionKey = await crypto.subtle.generateKey(
+          { name: "AES-GCM", length: 256 },
+          true,
+          ["encrypt", "decrypt"],
+        );
+
+        // 2. Encrypt reaction plaintext: JSON({ emoji, reactorId })
+        const reactionIv = crypto.getRandomValues(new Uint8Array(12));
+        const reactionPlaintext = JSON.stringify({ emoji, reactorId });
+        const encryptedReactionBytes = new Uint8Array(
+          await crypto.subtle.encrypt(
+            { name: "AES-GCM", iv: reactionIv },
+            reactionKey,
+            new TextEncoder().encode(reactionPlaintext),
+          ),
+        );
+
+        // 3. For each recipient, wrap reaction key using ephemeral ECDH (same as message)
+        const wrappedReactionKeys = [];
+        for (const recipient of reactionRecipients) {
+          // Generate ephemeral X25519 key pair per recipient
+          const ephemeralKp = await crypto.subtle.generateKey(
+            { name: "X25519" },
+            false,
+            ["deriveKey", "deriveBits"],
+          );
+
+          // Import recipient's X25519 public key (raw 32 bytes)
+          const recipientPub = await crypto.subtle.importKey(
+            "raw",
+            base64ToUint8(recipient.x25519PublicKey),
+            { name: "X25519" },
+            false,
+            [],
+          );
+
+          // ECDH: ephemeral private x recipient public -> shared bits
+          const sharedBits = await crypto.subtle.deriveBits(
+            { name: "X25519", public: recipientPub },
+            ephemeralKp.privateKey,
+            256,
+          );
+
+          // HKDF: shared bits -> AES-256-GCM wrap key
+          const hkdfKey = await crypto.subtle.importKey("raw", sharedBits, "HKDF", false, ["deriveKey"]);
+          const wrapKey = await crypto.subtle.deriveKey(
+            { name: "HKDF", hash: "SHA-256", salt: new Uint8Array(32), info: new TextEncoder().encode(MESSAGE_KEY_WRAP_INFO) },
+            hkdfKey,
+            { name: "AES-GCM", length: 256 },
+            false,
+            ["wrapKey"],
+          );
+
+          // Wrap the reaction key
+          const wrapIv = crypto.getRandomValues(new Uint8Array(12));
+          const wrappedRxKey = new Uint8Array(
+            await crypto.subtle.wrapKey("raw", reactionKey, wrapKey, { name: "AES-GCM", iv: wrapIv }),
+          );
+
+          // Concat wrapIv + wrappedRxKey for storage (same pattern as messages)
+          const combined = new Uint8Array(12 + wrappedRxKey.length);
+          combined.set(wrapIv, 0);
+          combined.set(wrappedRxKey, 12);
+
+          // Export ephemeral public key
+          const ephPubBytes = new Uint8Array(await crypto.subtle.exportKey("raw", ephemeralKp.publicKey));
+
+          wrappedReactionKeys.push({
+            recipientUserId: recipient.userId,
+            encryptedReactionKey: uint8ToBase64(combined),
+            ephemeralPublicKey: uint8ToBase64(ephPubBytes),
+          });
+        }
+
+        const encryptReactionResult: EncryptReactionResultData = {
+          encryptedReaction: uint8ToBase64(encryptedReactionBytes),
+          reactionIv: uint8ToBase64(reactionIv),
+          recipients: wrappedReactionKeys,
+        };
+
+        postResult(encryptReactionResult);
+        break;
+      }
+
+      // ----------------------------------------------------------
+      // DECRYPT_REACTION: Decrypt a reaction ciphertext using cached private key
+      // Reverses ECDH + HKDF + AES-256-GCM unwrap to recover { emoji, reactorId }
+      // ----------------------------------------------------------
+      case "DECRYPT_REACTION": {
+        if (!_cachedKeys) throw new Error("Keys not unlocked — call LOGIN_DECRYPT first");
+
+        const { encryptedReaction, reactionIv: rxIv, encryptedReactionKey, ephemeralPublicKey: rxEphPub } = payload;
+
+        const encRxKeyBytes = base64ToUint8(encryptedReactionKey);
+        const rxWrapIv = encRxKeyBytes.slice(0, 12);
+        const rxWrappedKey = encRxKeyBytes.slice(12);
+
+        // Import ephemeral public key
+        const rxEphPubKey = await crypto.subtle.importKey(
+          "raw",
+          base64ToUint8(rxEphPub),
+          { name: "X25519" },
+          false,
+          [],
+        );
+
+        // ECDH: my private x ephemeral public -> same shared bits
+        const rxSharedBits = await crypto.subtle.deriveBits(
+          { name: "X25519", public: rxEphPubKey },
+          _cachedKeys.x25519PrivateKey,
+          256,
+        );
+
+        // HKDF -> unwrap key
+        const rxHkdfKey = await crypto.subtle.importKey("raw", rxSharedBits, "HKDF", false, ["deriveKey"]);
+        const rxUnwrapKey = await crypto.subtle.deriveKey(
+          { name: "HKDF", hash: "SHA-256", salt: new Uint8Array(32), info: new TextEncoder().encode(MESSAGE_KEY_WRAP_INFO) },
+          rxHkdfKey,
+          { name: "AES-GCM", length: 256 },
+          false,
+          ["unwrapKey"],
+        );
+
+        // Unwrap reaction key
+        const reactionKeyObj = await crypto.subtle.unwrapKey(
+          "raw",
+          rxWrappedKey,
+          rxUnwrapKey,
+          { name: "AES-GCM", iv: rxWrapIv },
+          { name: "AES-GCM", length: 256 },
+          false,
+          ["decrypt"],
+        );
+
+        // Decrypt reaction content
+        const reactionPlaintextBytes = await crypto.subtle.decrypt(
+          { name: "AES-GCM", iv: base64ToUint8(rxIv) },
+          reactionKeyObj,
+          base64ToUint8(encryptedReaction),
+        );
+
+        const parsed = JSON.parse(new TextDecoder().decode(reactionPlaintextBytes)) as {
+          emoji: string;
+          reactorId: string;
+        };
+
+        const decryptReactionResult: DecryptReactionResultData = {
+          emoji: parsed.emoji,
+          reactorId: parsed.reactorId,
+        };
+
+        postResult(decryptReactionResult);
+        break;
+      }
+
+      // ----------------------------------------------------------
+      // RESTORE_KEYS: Try to restore cached keys from IndexedDB
+      // Used on page reload to avoid re-entering password
+      // ----------------------------------------------------------
+      case "RESTORE_KEYS": {
+        if (_cachedKeys) {
+          postResult({ restored: true } satisfies RestoreKeysResultData);
+          break;
+        }
+
+        const stored = await loadKeys();
+        if (stored) {
+          _cachedKeys = stored;
+          postResult({ restored: true } satisfies RestoreKeysResultData);
+        } else {
+          postResult({ restored: false } satisfies RestoreKeysResultData);
+        }
+        break;
+      }
+
+      // ----------------------------------------------------------
+      // CLEAR_KEYS: Clear cached keys from memory and IndexedDB
+      // Called on logout
+      // ----------------------------------------------------------
+      case "CLEAR_KEYS": {
+        _cachedKeys = null;
+        await deleteKeys();
+        postResult({ cleared: true } satisfies ClearKeysResultData);
         break;
       }
 

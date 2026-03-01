@@ -73,6 +73,42 @@ export interface DecryptMessageRequest {
   };
 }
 
+export interface RestoreKeysRequest {
+  type: "RESTORE_KEYS";
+  id: string;
+  payload: Record<string, never>;
+}
+
+export interface ClearKeysRequest {
+  type: "CLEAR_KEYS";
+  id: string;
+  payload: Record<string, never>;
+}
+
+export interface EncryptReactionRequest {
+  type: "ENCRYPT_REACTION";
+  id: string;
+  payload: {
+    emoji: string;
+    reactorId: string;
+    recipients: Array<{
+      userId: string;
+      x25519PublicKey: string; // base64, raw 32 bytes
+    }>;
+  };
+}
+
+export interface DecryptReactionRequest {
+  type: "DECRYPT_REACTION";
+  id: string;
+  payload: {
+    encryptedReaction: string; // base64
+    reactionIv: string; // base64
+    encryptedReactionKey: string; // base64 (first 12 bytes = wrapIv)
+    ephemeralPublicKey: string; // base64
+  };
+}
+
 export interface EncryptMessageResultData {
   encryptedContent: string;    // base64
   contentIv: string;           // base64
@@ -87,13 +123,40 @@ export interface DecryptMessageResultData {
   plaintext: string;
 }
 
+export interface EncryptReactionResultData {
+  encryptedReaction: string; // base64
+  reactionIv: string; // base64
+  recipients: Array<{
+    recipientUserId: string;
+    encryptedReactionKey: string; // base64
+    ephemeralPublicKey: string; // base64
+  }>;
+}
+
+export interface DecryptReactionResultData {
+  emoji: string;
+  reactorId: string;
+}
+
+export interface RestoreKeysResultData {
+  restored: boolean;
+}
+
+export interface ClearKeysResultData {
+  cleared: boolean;
+}
+
 export type CryptoWorkerRequest =
   | DeriveKeysRequest
   | RegisterRequest
   | LoginDecryptRequest
   | ChangePasswordRequest
   | EncryptMessageRequest
-  | DecryptMessageRequest;
+  | DecryptMessageRequest
+  | RestoreKeysRequest
+  | ClearKeysRequest
+  | EncryptReactionRequest
+  | DecryptReactionRequest;
 
 // ---- Result data shapes ------------------------------------
 
@@ -159,6 +222,10 @@ export type CryptoWorkerResponse =
   | ResultResponse<ChangePasswordResultData>
   | ResultResponse<EncryptMessageResultData>
   | ResultResponse<DecryptMessageResultData>
+  | ResultResponse<RestoreKeysResultData>
+  | ResultResponse<ClearKeysResultData>
+  | ResultResponse<EncryptReactionResultData>
+  | ResultResponse<DecryptReactionResultData>
   | ErrorResponse;
 
 // ---- Convenience type aliases ------------------------------

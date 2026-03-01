@@ -317,3 +317,53 @@ export const channelReadStates = pgTable(
 
 export type ChannelReadState = InferSelectModel<typeof channelReadStates>;
 export type NewChannelReadState = InferInsertModel<typeof channelReadStates>;
+
+// ---------------------------------------------------------------------------
+// message_reactions — Encrypted emoji reactions on messages
+// Server stores only ciphertext — emoji is never seen in plaintext by server
+// ---------------------------------------------------------------------------
+
+export const messageReactions = pgTable(
+  "message_reactions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    messageId: uuid("message_id")
+      .notNull()
+      .references(() => messages.id, { onDelete: "cascade" }),
+    reactorId: uuid("reactor_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    encryptedReaction: bytea("encrypted_reaction").notNull(),
+    reactionIv: bytea("reaction_iv").notNull(),
+    reactionAlgorithm: text("reaction_algorithm").notNull().default("aes-256-gcm"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (t) => [uniqueIndex("mr_message_reactor_idx").on(t.messageId, t.reactorId)],
+);
+
+export type MessageReaction = InferSelectModel<typeof messageReactions>;
+export type NewMessageReaction = InferInsertModel<typeof messageReactions>;
+
+// ---------------------------------------------------------------------------
+// reaction_recipient_keys — Per-recipient wrapped reaction AES key
+// Each recipient gets the reaction's AES key encrypted with their X25519 public key
+// ---------------------------------------------------------------------------
+
+export const reactionRecipientKeys = pgTable(
+  "reaction_recipient_keys",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    reactionId: uuid("reaction_id")
+      .notNull()
+      .references(() => messageReactions.id, { onDelete: "cascade" }),
+    recipientUserId: uuid("recipient_user_id")
+      .notNull()
+      .references(() => users.id),
+    encryptedReactionKey: bytea("encrypted_reaction_key").notNull(),
+    ephemeralPublicKey: bytea("ephemeral_public_key").notNull(),
+  },
+  (t) => [uniqueIndex("rrk_reaction_recipient_idx").on(t.reactionId, t.recipientUserId)],
+);
+
+export type ReactionRecipientKey = InferSelectModel<typeof reactionRecipientKeys>;
+export type NewReactionRecipientKey = InferInsertModel<typeof reactionRecipientKeys>;

@@ -18,9 +18,13 @@ import type {
   ChangePasswordResultData,
   EncryptMessageResultData,
   DecryptMessageResultData,
+  RestoreKeysResultData,
+  ClearKeysResultData,
+  EncryptReactionResultData,
+  DecryptReactionResultData,
 } from "@tether/shared";
 
-export type { EncryptMessageResultData, DecryptMessageResultData };
+export type { EncryptMessageResultData, DecryptMessageResultData, EncryptReactionResultData, DecryptReactionResultData };
 
 // ============================================================
 // Worker instantiation (Vite module worker pattern)
@@ -290,6 +294,56 @@ export function decryptMessage(payload: {
   ephemeralPublicKey: string;
 }): Promise<DecryptMessageResultData> {
   return call<DecryptMessageResultData>("DECRYPT_MESSAGE", payload);
+}
+
+/**
+ * Tries to restore cached keys from IndexedDB.
+ * Returns { restored: true } if keys were found, { restored: false } otherwise.
+ * Call this on page reload (after silent refresh) to avoid re-entering the password.
+ */
+export function restoreKeys(): Promise<RestoreKeysResultData> {
+  return call<RestoreKeysResultData>("RESTORE_KEYS", {});
+}
+
+/**
+ * Clears cached keys from worker memory and IndexedDB.
+ * Call this on logout before terminating the worker.
+ */
+export function clearKeys(): Promise<ClearKeysResultData> {
+  return call<ClearKeysResultData>("CLEAR_KEYS", {});
+}
+
+/**
+ * Encrypts an emoji reaction for multiple recipients using ephemeral X25519 ECDH.
+ * Identical to encryptMessage but plaintext = JSON.stringify({ emoji, reactorId }).
+ * Requires keys to have been unlocked via loginDecrypt() first.
+ *
+ * @param emoji      The emoji character to react with
+ * @param reactorId  The reacting user's ID (included in ciphertext to prevent emoji substitution)
+ * @param recipients Array of {userId, x25519PublicKey} for each channel participant
+ */
+export function encryptReaction(
+  emoji: string,
+  reactorId: string,
+  recipients: Array<{ userId: string; x25519PublicKey: string }>,
+): Promise<EncryptReactionResultData> {
+  return call<EncryptReactionResultData>("ENCRYPT_REACTION", { emoji, reactorId, recipients });
+}
+
+/**
+ * Decrypts an encrypted reaction using the cached private key.
+ * Returns { emoji, reactorId } from the decrypted JSON.
+ * Requires keys to have been unlocked via loginDecrypt() first.
+ *
+ * @param payload  The encrypted reaction data (ciphertext + recipient key info)
+ */
+export function decryptReaction(payload: {
+  encryptedReaction: string;
+  reactionIv: string;
+  encryptedReactionKey: string;
+  ephemeralPublicKey: string;
+}): Promise<DecryptReactionResultData> {
+  return call<DecryptReactionResultData>("DECRYPT_REACTION", payload);
 }
 
 /**

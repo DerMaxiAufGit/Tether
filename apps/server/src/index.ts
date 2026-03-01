@@ -28,6 +28,8 @@ import dmCreateRoute from "./routes/dms/create.js";
 import dmListRoute from "./routes/dms/list.js";
 import unreadRoute from "./routes/channels/unread.js";
 import markReadRoute from "./routes/channels/mark-read.js";
+import addReactionRoute from "./routes/reactions/add.js";
+import removeReactionRoute from "./routes/reactions/remove.js";
 import { setupSocketIO } from "./socket/index.js";
 
 // Augment Fastify types so route handlers can access io
@@ -94,6 +96,10 @@ await server.register(dmListRoute, { prefix: "/api/dms" });
 // Unread tracking routes
 await server.register(unreadRoute, { prefix: "/api" });
 await server.register(markReadRoute, { prefix: "/api" });
+
+// Reaction routes
+await server.register(addReactionRoute, { prefix: "/api" });
+await server.register(removeReactionRoute, { prefix: "/api" });
 
 // Graceful shutdown
 const shutdown = async (): Promise<void> => {
