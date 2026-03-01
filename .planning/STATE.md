@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-03-01T02:00:00Z"
+last_updated: "2026-03-01T02:04:25Z"
 progress:
   total_phases: 7
   completed_phases: 3
   total_plans: 43
-  completed_plans: 22
+  completed_plans: 24
 ---
 
 # Project State
@@ -18,16 +18,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-02-25)
 
 **Core value:** Messages are zero-knowledge to the server — only authenticated users with their credentials can decrypt message content.
-**Current focus:** Phase 4 (Presence and Messaging UX) — Plan 1/5 complete
+**Current focus:** Phase 4 (Presence and Messaging UX) — Plan 3/5 complete
 
 ## Current Position
 
 Phase: 4 of 7 (Presence and Messaging UX) — In progress
-Plan: 1/5 complete (04-01 done)
+Plan: 3/5 complete (04-03 done)
 Status: In progress
-Last activity: 2026-03-01 — Completed 04-01-PLAN.md (presence foundation)
+Last activity: 2026-03-01 — Completed 04-03-PLAN.md (typing indicators)
 
-Progress: [█████░░░░░] 51% (22/43 plans complete)
+Progress: [█████░░░░░] 56% (24/43 plans complete)
 
 ## Performance Metrics
 
@@ -147,6 +147,10 @@ Recent decisions affecting current work:
 - 04-01: Status resolution priority: offline (count<=0) > dnd > idle > online — resolveStatus() pure function in presence.ts
 - 04-01: 30-second grace period for offline broadcast — prevents flicker on page reload / tab switch
 - 04-01: Socket.IO supports multiple handlers on same event — presence.ts registers own disconnect handler (grace period) alongside connection.ts disconnect log
+- 04-03: Typing indicator reserved h-6 (24px) height even when empty — prevents layout shift on appear/disappear
+- 04-03: Redis Sets chosen over simple keys for multi-instance typing support; EXPIRE 30s TTL for crash auto-cleanup
+- 04-03: Disconnect handler in typing.ts iterates socket.rooms to clean up all channels at once
+- 04-03: CSS custom animation via @theme --animate-* + @keyframes in Tailwind v4 index.css (animate-bounce-dot)
 
 ### Pending Todos
 
@@ -158,6 +162,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-01T02:00:00Z
-Stopped at: Completed 04-01-PLAN.md (presence foundation — Redis INCR/DECR, PresenceDot, shared types)
+Last session: 2026-03-01T02:04:25Z
+Stopped at: Completed 04-03-PLAN.md (typing indicators — Redis Sets, useTyping, TypingIndicator, bouncing dots)
 Resume file: None
