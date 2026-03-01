@@ -147,6 +147,10 @@ Recent decisions affecting current work:
 - 04-01: Status resolution priority: offline (count<=0) > dnd > idle > online — resolveStatus() pure function in presence.ts
 - 04-01: 30-second grace period for offline broadcast — prevents flicker on page reload / tab switch
 - 04-01: Socket.IO supports multiple handlers on same event — presence.ts registers own disconnect handler (grace period) alongside connection.ts disconnect log
+- 04-02: IdleDetector null-rendering component in AppShell — hook calls useSocket so must be inside SocketProvider as child, not in the provider itself
+- 04-02: Online sort order locked: online > idle > dnd within Online section, then alphabetical by displayName
+- 04-02: Tab hidden triggers 1-minute idle timer (vs 10-minute for active tab)
+- 04-02: MemberRow extracted as subcomponent to share render logic between Online and Offline sections
 - 04-03: Typing indicator reserved h-6 (24px) height even when empty — prevents layout shift on appear/disappear
 - 04-03: Redis Sets chosen over simple keys for multi-instance typing support; EXPIRE 30s TTL for crash auto-cleanup
 - 04-03: Disconnect handler in typing.ts iterates socket.rooms to clean up all channels at once
