@@ -294,3 +294,26 @@ export const channelOverrides = pgTable(
 
 export type ChannelOverride = InferSelectModel<typeof channelOverrides>;
 export type NewChannelOverride = InferInsertModel<typeof channelOverrides>;
+
+// ---------------------------------------------------------------------------
+// channel_read_states — Per-user per-channel last_read_at cursor
+// Used to compute unread message counts for each channel.
+// ---------------------------------------------------------------------------
+
+export const channelReadStates = pgTable(
+  "channel_read_states",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    channelId: uuid("channel_id")
+      .notNull()
+      .references(() => channels.id, { onDelete: "cascade" }),
+    lastReadAt: timestamp("last_read_at").defaultNow().notNull(),
+  },
+  (t) => [uniqueIndex("crs_user_channel_idx").on(t.userId, t.channelId)],
+);
+
+export type ChannelReadState = InferSelectModel<typeof channelReadStates>;
+export type NewChannelReadState = InferInsertModel<typeof channelReadStates>;

@@ -26,6 +26,8 @@ import listMessagesRoute from "./routes/messages/list.js";
 import deleteMessageRoute from "./routes/messages/delete.js";
 import dmCreateRoute from "./routes/dms/create.js";
 import dmListRoute from "./routes/dms/list.js";
+import unreadRoute from "./routes/channels/unread.js";
+import markReadRoute from "./routes/channels/mark-read.js";
 import { setupSocketIO } from "./socket/index.js";
 
 // Augment Fastify types so route handlers can access io
@@ -35,7 +37,10 @@ declare module "fastify" {
   }
 }
 
-const server = Fastify({ logger: true });
+const server = Fastify({
+  logger: true,
+  trustProxy: true, // Trust X-Forwarded-* headers from nginx proxy
+});
 
 // Pre-decorate io with null BEFORE server starts (Fastify 5 requirement:
 // decorators cannot be added after server.listen() is called)
@@ -85,6 +90,10 @@ await server.register(deleteMessageRoute, { prefix: "/api/messages" });
 // DM routes
 await server.register(dmCreateRoute, { prefix: "/api/dms" });
 await server.register(dmListRoute, { prefix: "/api/dms" });
+
+// Unread tracking routes
+await server.register(unreadRoute, { prefix: "/api" });
+await server.register(markReadRoute, { prefix: "/api" });
 
 // Graceful shutdown
 const shutdown = async (): Promise<void> => {

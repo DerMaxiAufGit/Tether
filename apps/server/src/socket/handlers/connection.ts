@@ -1,7 +1,7 @@
 import type { Socket, Server as SocketIOServer } from "socket.io";
 import type { FastifyBaseLogger } from "fastify";
 import { db } from "../../db/client.js";
-import { channels, serverMembers, dmParticipants } from "../../db/schema.js";
+import { channels, serverMembers, dmParticipants, channelReadStates } from "../../db/schema.js";
 import { eq, and } from "drizzle-orm";
 import { registerPresenceHandlers } from "./presence.js";
 import { registerTypingHandlers } from "./typing.js";
@@ -143,6 +143,24 @@ export async function registerConnectionHandlers(
     if (dmAccess) {
       await socket.join(`channel:${channelId}`);
       logger.info({ userId, channelId }, "User subscribed to DM channel room");
+    }
+  });
+
+  // Mark a channel as read (real-time alternative to the REST endpoint).
+  // Upserts the user's lastReadAt cursor and notifies other open tabs.
+  socket.on("channel:read", async ({ channelId }: { channelId: string }) => {
+    try {
+      await db
+        .insert(channelReadStates)
+        .values({ userId, channelId, lastReadAt: new Date() })
+        .onConflictDoUpdate({
+          target: [channelReadStates.userId, channelReadStates.channelId],
+          set: { lastReadAt: new Date() },
+        });
+      // Notify other tabs (exclude current socket — it already updates optimistically)
+      socket.to(`user:${userId}`).emit("unread:cleared", { channelId });
+    } catch (err) {
+      logger.error({ err, userId, channelId }, "channel:read handler error");
     }
   });
 
