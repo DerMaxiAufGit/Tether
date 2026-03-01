@@ -181,6 +181,7 @@ export function useSendMessage(channelId: string) {
     },
 
     onError: (_error, _variables, context) => {
+      console.error("[sendMessage] mutation failed:", _error);
       if (!context) return;
       const { optimisticId } = context;
 

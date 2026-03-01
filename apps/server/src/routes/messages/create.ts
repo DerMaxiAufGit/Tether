@@ -218,6 +218,11 @@ export default async function createMessageRoute(fastify: FastifyInstance): Prom
         };
 
         // Broadcast to all channel room members (client deduplicates via optimistic ID)
+        const room = fastify.io.sockets.adapter.rooms.get(`channel:${channelId}`);
+        request.log.info(
+          { channelId, messageId: message.id, roomSize: room?.size ?? 0 },
+          "[broadcast] message:created → channel room"
+        );
         fastify.io.to(`channel:${channelId}`).emit("message:created", broadcastEnvelope);
 
         return reply.code(201).send({ message: envelope });

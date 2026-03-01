@@ -19,6 +19,7 @@ import {
   type ReactNode,
 } from "react";
 import { setAccessToken, clearAccessToken, silentRefreshSession, api } from "@/lib/api";
+import { restoreKeys, clearKeys, terminateWorker } from "@/lib/crypto";
 
 // ============================================================
 // Types
@@ -35,11 +36,15 @@ interface AuthState {
   user: AuthUser | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  /** True when the crypto worker has keys loaded (either from loginDecrypt or restoreKeys). */
+  keysRestored: boolean;
 }
 
 interface AuthContextValue extends AuthState {
   login: (accessToken: string, user: AuthUser) => void;
   logout: () => Promise<void>;
+  /** Called by CryptoUnlockPrompt after a successful loginDecrypt to mark keys as available. */
+  setKeysRestored: (restored: boolean) => void;
 }
 
 // ============================================================
@@ -61,6 +66,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     user: null,
     isAuthenticated: false,
     isLoading: true, // start loading — silent refresh in progress
+    keysRestored: false,
   });
 
   // Silent auth check on mount — tries to restore session via refresh cookie.
@@ -83,22 +89,35 @@ export function AuthProvider({ children }: AuthProviderProps) {
         if (!result) {
           // No valid refresh cookie — user is not logged in (this is normal)
           if (!cancelled) {
-            setState({ user: null, isAuthenticated: false, isLoading: false });
+            setState({ user: null, isAuthenticated: false, isLoading: false, keysRestored: false });
           }
           return;
         }
         // Access token is now set; fetch the full user profile
         const meData = await api.get<{ user: AuthUser }>("/api/auth/me");
+
+        // Try to restore crypto keys from IndexedDB (avoids password re-entry on reload).
+        // If restored: false, the user will be prompted for their password in ChannelView.
+        let keysRestored = false;
+        try {
+          const restoreResult = await restoreKeys();
+          keysRestored = restoreResult.restored;
+        } catch {
+          // IndexedDB unavailable or key load failed — user will re-enter password
+          keysRestored = false;
+        }
+
         if (!cancelled) {
           setState({
             user: meData.user,
             isAuthenticated: true,
             isLoading: false,
+            keysRestored,
           });
         }
       } catch {
         if (!cancelled) {
-          setState({ user: null, isAuthenticated: false, isLoading: false });
+          setState({ user: null, isAuthenticated: false, isLoading: false, keysRestored: false });
         }
       }
     }
@@ -112,7 +131,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const login = useCallback((accessToken: string, user: AuthUser) => {
     setAccessToken(accessToken);
-    setState({ user, isAuthenticated: true, isLoading: false });
+    // loginDecrypt is called by the caller (LoginPage) before invoking login(),
+    // so keys are already loaded in the worker at this point.
+    setState({ user, isAuthenticated: true, isLoading: false, keysRestored: true });
+  }, []);
+
+  const setKeysRestored = useCallback((restored: boolean) => {
+    setState((prev) => ({ ...prev, keysRestored: restored }));
   }, []);
 
   const logout = useCallback(async () => {
@@ -121,14 +146,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
     } catch {
       // Ignore errors on logout — we're clearing state regardless
     }
+    // Clear crypto keys from IndexedDB and terminate the worker
+    try { await clearKeys(); } catch { /* worker may already be dead */ }
+    terminateWorker();
     clearAccessToken();
-    setState({ user: null, isAuthenticated: false, isLoading: false });
+    setState({ user: null, isAuthenticated: false, isLoading: false, keysRestored: false });
   }, []);
 
   const value: AuthContextValue = {
     ...state,
     login,
     logout,
+    setKeysRestored,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

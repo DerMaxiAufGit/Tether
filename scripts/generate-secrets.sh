@@ -78,7 +78,7 @@ MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
 # ---------------------------------------------------------------------------
 # App
 # ---------------------------------------------------------------------------
-CLIENT_URL=http://localhost:5173
+CLIENT_URL=http://localhost
 PORT=3001
 EOF
 

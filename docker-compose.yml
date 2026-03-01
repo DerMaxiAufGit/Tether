@@ -1,11 +1,12 @@
-version: "3.9"
-
 # Tether Docker Compose
 # Usage: bash scripts/generate-secrets.sh && docker compose up
 #
 # Networks:
-#   internal      — app, postgres, redis, minio (private services)
+#   internal        — proxy, app, client, postgres, redis, minio (private services)
 #   coturn_external — coturn only (internet-facing TURN relay, isolated from internal)
+#
+# Single entry point: proxy on port 80 routes to app and client.
+# Coturn keeps its own ports for STUN/TURN (UDP-heavy, not suited for HTTP proxy).
 #
 # Security: Coturn cannot reach PostgreSQL, Redis, or MinIO by design.
 
@@ -20,6 +21,56 @@ volumes:
   minio_data:
 
 services:
+  # ---------------------------------------------------------------------------
+  # Nginx — reverse proxy (single entry point)
+  #
+  # Routes:
+  #   /api/*       → app:3001 (backend)
+  #   /socket.io/* → app:3001 (backend, WebSocket upgrade)
+  #   /*           → client:80 (frontend)
+  # ---------------------------------------------------------------------------
+  proxy:
+    image: nginx:alpine
+    networks:
+      - internal
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - app
+      - client
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Nginx — dev proxy (routes to host-running services)
+  #
+  # Use instead of proxy when running server/client via `turbo dev`:
+  #   docker compose --profile dev up -d proxy-dev
+  # ---------------------------------------------------------------------------
+  proxy-dev:
+    image: nginx:alpine
+    networks:
+      - internal
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.dev.conf:/etc/nginx/conf.d/default.conf:ro
+    profiles:
+      - dev
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Client — React frontend (nginx serving production build)
+  # ---------------------------------------------------------------------------
+  client:
+    build:
+      context: .
+      dockerfile: apps/client/Dockerfile
+    networks:
+      - internal
+    restart: unless-stopped
+
   # ---------------------------------------------------------------------------
   # PostgreSQL — primary database
   # ---------------------------------------------------------------------------
@@ -111,27 +162,49 @@ services:
     restart: unless-stopped
 
   # ---------------------------------------------------------------------------
-  # App — Tether server
+  # DB Push — run Drizzle schema push on startup
+  #
+  # Uses the builder stage of the server Dockerfile so drizzle-kit
+  # (a devDependency) is available. Runs once and exits.
   # ---------------------------------------------------------------------------
-  app:
-    build: .
+  db-push:
+    build:
+      context: .
+      dockerfile: apps/server/Dockerfile
+      target: builder
     networks:
       - internal
-    ports:
-      - "3001:3001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+    working_dir: /app/apps/server
+    command: ["pnpm", "db:push"]
+    restart: "no"
+
+  # ---------------------------------------------------------------------------
+  # App — Tether server (backend)
+  # ---------------------------------------------------------------------------
+  app:
+    build:
+      context: .
+      dockerfile: apps/server/Dockerfile
+    networks:
+      - internal
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
-    environment:
-      DATABASE_URL: ${DATABASE_URL}
-      REDIS_URL: ${REDIS_URL}
-      JWT_SECRET: ${JWT_SECRET}
-      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
-      COOKIE_SECRET: ${COOKIE_SECRET}
-      CLIENT_URL: ${CLIENT_URL}
-      PORT: 3001
+      minio:
+        condition: service_healthy
+      db-push:
+        condition: service_completed_successfully
     env_file:
       - .env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      PORT: 3001
     restart: unless-stopped

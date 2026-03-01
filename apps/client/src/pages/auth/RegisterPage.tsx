@@ -6,7 +6,7 @@ import { KeyDerivationProgress } from "@/components/auth/KeyDerivationProgress";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { register } from "@/lib/crypto";
+import { register, loginDecrypt } from "@/lib/crypto";
 import { api } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -167,10 +167,24 @@ export default function RegisterPage() {
         recoveryKeyHash,
       });
 
-      // Step 4: Store auth state
+      // Step 4: Decrypt private keys in Worker to populate _cachedKeys
+      // (register() only generates+wraps keys; loginDecrypt() is what makes them
+      // available for ENCRYPT_MESSAGE. We have all the blobs from cryptoResult.)
+      await loginDecrypt(
+        password,
+        {
+          salt: cryptoResult.salt,
+          x25519Blob: cryptoResult.x25519EncryptedPrivateKey,
+          x25519Iv: cryptoResult.x25519KeyIv,
+          ed25519Blob: cryptoResult.ed25519EncryptedPrivateKey,
+          ed25519Iv: cryptoResult.ed25519KeyIv,
+        },
+      );
+
+      // Step 5: Store auth state
       login(response.accessToken, response.user);
 
-      // Step 5: Navigate to recovery key page with the key in router state
+      // Step 6: Navigate to recovery key page with the key in router state
       navigate("/recovery-key", {
         state: { recoveryKey },
         replace: true,

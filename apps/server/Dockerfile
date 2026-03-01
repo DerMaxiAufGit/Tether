@@ -5,8 +5,8 @@
 #   builder — compile TypeScript for shared and server packages
 #   runner  — minimal production image with only compiled output
 #
-# Build: docker build -t tether-server .
-# Run:   docker compose up app
+# Build context must be repo root:
+#   docker build -f apps/server/Dockerfile -t tether-server .
 
 # ---------------------------------------------------------------------------
 # Stage 1: deps — install dependencies
@@ -35,14 +35,17 @@ WORKDIR /app
 
 # Copy installed node_modules from deps stage
 COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/apps/server/node_modules ./apps/server/node_modules 2>/dev/null || true
-COPY --from=deps /app/packages/shared/node_modules ./packages/shared/node_modules 2>/dev/null || true
+COPY --from=deps /app/apps/server/node_modules ./apps/server/node_modules
+COPY --from=deps /app/packages/shared/node_modules ./packages/shared/node_modules
 
 # Copy source
-COPY . .
+COPY tsconfig.base.json ./
+COPY packages/shared/ ./packages/shared/
+COPY apps/server/ ./apps/server/
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
 
 # Build shared package first (server depends on it)
-RUN pnpm --filter @tether/shared build 2>/dev/null || true
+RUN pnpm --filter @tether/shared build
 
 # Build server
 RUN pnpm --filter @tether/server build
@@ -58,14 +61,19 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
-# Copy compiled output and runtime dependencies only
-COPY --from=builder /app/apps/server/dist ./apps/server/dist
-COPY --from=builder /app/apps/server/package.json ./apps/server/
-COPY --from=builder /app/packages/shared/dist ./packages/shared/dist 2>/dev/null || true
-COPY --from=builder /app/packages/shared/package.json ./packages/shared/
-COPY --from=builder /app/node_modules ./node_modules
+# Copy workspace manifests and lockfile for prod install
 COPY --from=builder /app/pnpm-workspace.yaml ./
 COPY --from=builder /app/package.json ./
+COPY --from=builder /app/pnpm-lock.yaml ./
+COPY --from=builder /app/apps/server/package.json ./apps/server/
+COPY --from=builder /app/packages/shared/package.json ./packages/shared/
+
+# Install production dependencies (proper pnpm resolution, no broken symlinks)
+RUN pnpm install --frozen-lockfile --prod --filter @tether/server... --filter @tether/shared
+
+# Copy compiled output
+COPY --from=builder /app/apps/server/dist ./apps/server/dist
+COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
 
 EXPOSE 3001
 
