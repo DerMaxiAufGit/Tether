@@ -36,9 +36,9 @@ Requirements for Milestone 1 (MVP). Each maps to roadmap phases.
 ### Messaging
 
 - [x] **MSG-01**: User can delete own messages
-- [ ] **MSG-02**: User sees typing indicators when others are typing
-- [ ] **MSG-03**: User sees per-channel unread counts and mention badges
-- [ ] **MSG-04**: User can react to messages with emoji
+- [x] **MSG-02**: User sees typing indicators when others are typing
+- [x] **MSG-03**: User sees per-channel unread counts and mention badges
+- [x] **MSG-04**: User can react to messages with emoji
 
 ### Voice & Video
 
@@ -55,8 +55,8 @@ Requirements for Milestone 1 (MVP). Each maps to roadmap phases.
 
 ### Presence
 
-- [ ] **PRES-01**: User sees online/offline status of other users in real-time
-- [ ] **PRES-02**: User sees member list in channel sidebar with online/offline status
+- [x] **PRES-01**: User sees online/offline status of other users in real-time
+- [x] **PRES-02**: User sees member list in channel sidebar with online/offline status
 
 ### Permissions
 
@@ -135,9 +135,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DM-01 | Phase 3 | Complete |
 | DM-02 | Phase 3 | Complete |
 | MSG-01 | Phase 3 | Complete |
-| MSG-02 | Phase 4 | Pending |
-| MSG-03 | Phase 4 | Pending |
-| MSG-04 | Phase 4 | Pending |
+| MSG-02 | Phase 4 | Complete |
+| MSG-03 | Phase 4 | Complete |
+| MSG-04 | Phase 4 | Complete |
 | VOICE-01 | Phase 5 | Pending |
 | VOICE-02 | Phase 5 | Pending |
 | VOICE-03 | Phase 5 | Pending |
@@ -145,8 +145,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | FILE-01 | Phase 6 | Pending |
 | FILE-02 | Phase 6 | Pending |
 | FILE-03 | Phase 6 | Pending |
-| PRES-01 | Phase 4 | Pending |
-| PRES-02 | Phase 4 | Pending |
+| PRES-01 | Phase 4 | Complete |
+| PRES-02 | Phase 4 | Complete |
 | PERM-01 | Phase 7 | Pending |
 | PERM-02 | Phase 7 | Pending |
 | PERM-03 | Phase 7 | Pending |

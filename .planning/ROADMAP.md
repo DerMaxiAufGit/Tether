@@ -15,7 +15,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 1: Foundation** - Monorepo skeleton, key hierarchy, auth with PBKDF2/HKDF derivation, Docker Compose with Coturn isolation, authenticated Socket.IO
 - [ ] **Phase 2: Servers and Channels** - Server creation, invite system, member management, channel CRUD
 - [x] **Phase 3: E2EE Text Messaging** - Per-message hybrid encryption, DMs, message send/receive/delete over real-time relay
-- [ ] **Phase 4: Presence and Messaging UX** - Online/offline presence, typing indicators, unread tracking, emoji reactions
+- [x] **Phase 4: Presence and Messaging UX** - Online/offline presence, typing indicators, unread tracking, emoji reactions
 - [ ] **Phase 5: Voice and Video** - WebRTC P2P mesh, Coturn TURN credentials, camera/screen share, voice activity
 - [ ] **Phase 6: Files and Media** - Encrypted file uploads to MinIO, inline image previews, profile avatars
 - [ ] **Phase 7: Permissions** - Role creation with permission bitfields, channel-level overrides, ownership transfer
@@ -98,14 +98,14 @@ Plans:
   3. User sees a typing indicator appear within 1 second when another member starts typing and disappear within 3 seconds of them stopping
   4. User sees a per-channel unread count badge in the channel list that clears when they open the channel; mention badges are distinct from regular unread counts
   5. User can click an emoji on a reaction picker and their reaction appears on the message for all participants in real-time
-**Plans**: TBD
+**Plans**: 5 plans
 
 Plans:
-- [ ] 04-01: Presence system (Redis TTL heartbeat, reference-counted by user ID, 30s grace period, online/offline/idle states, Socket.IO broadcast)
-- [ ] 04-02: Member list UI (server member list with presence badges, role-based display, real-time status updates)
-- [ ] 04-03: Typing indicators (Socket.IO typing:start/stop events, debounced client emit, server relay without persistence)
-- [ ] 04-04: Unread tracking (per-user per-channel last_read_at cursor, Socket.IO update on receipt, unread count computation, mention badge logic)
-- [ ] 04-05: Emoji reactions (reaction schema, add/remove reaction endpoints, Socket.IO broadcast, reaction picker UI, reaction display on messages)
+- [x] 04-01-PLAN.md — Presence system (Redis INCR/DECR reference counting, 30s grace period, online/offline/idle/DND states, Socket.IO broadcast, PresenceDot component)
+- [x] 04-02-PLAN.md — Member list with presence (usePresence/useIdleDetection hooks, online/offline grouping, presence dots, 10-minute idle detection)
+- [x] 04-03-PLAN.md — Typing indicators (Redis Sets relay, debounced client emit, bouncing dots animation, TypingIndicator component)
+- [x] 04-04-PLAN.md — Unread tracking (channelReadStates table, scroll-to-bottom clearing, channel badges, server icon dots, mention detection on decrypted plaintext)
+- [x] 04-05-PLAN.md — Encrypted emoji reactions (messageReactions/reactionRecipientKeys tables, ENCRYPT_REACTION/DECRYPT_REACTION crypto, emoji-mart picker, reaction pills)
 
 ### Phase 5: Voice and Video
 **Goal**: Users can join voice channels, talk peer-to-peer with WebRTC through Coturn for NAT traversal, and optionally enable camera or share their screen — media never transits the app server.
@@ -173,7 +173,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 | 1. Foundation | 0/7 | Planned | - |
 | 2. Servers and Channels | 0/8 | Planned | - |
 | 3. E2EE Text Messaging | 8/8 | Complete | 2026-03-01 |
-| 4. Presence and Messaging UX | 0/5 | Not started | - |
+| 4. Presence and Messaging UX | 5/5 | Complete | 2026-03-01 |
 | 5. Voice and Video | 0/7 | Not started | - |
 | 6. Files and Media | 0/4 | Not started | - |
 | 7. Permissions | 0/4 | Not started | - |
