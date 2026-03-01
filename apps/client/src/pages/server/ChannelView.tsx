@@ -6,8 +6,9 @@
  *   - MessageList (flex-1, scrollable)
  *   - MessageInput (bottom, border-t)
  *
- * Crypto unlock: if keys are not loaded in the worker (detected by attempting
- * a decryptMessage call), shows CryptoUnlockPrompt overlay instead of the input.
+ * Crypto unlock: if keys are not loaded in the worker (keysRestored === false from
+ * useAuth), shows CryptoUnlockPrompt overlay instead of enabling the input.
+ * This covers the page-reload case where IndexedDB didn't have keys persisted.
  *
  * Send flow:
  *   1. Get server members from useServerMembers(serverId)
@@ -18,13 +19,16 @@
  *   - Emits channel:subscribe on mount to join the channel room
  */
 
-import { useState, useCallback, useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import { useParams, useOutletContext } from "react-router-dom";
 import { useChannels, useServerMembers } from "@/hooks/useChannels";
 import { useSendMessage } from "@/hooks/useMessages";
 import { useSocket } from "@/hooks/useSocket";
+import { useAuth } from "@/hooks/useAuth";
+import { useTyping } from "@/hooks/useTyping";
 import MessageList from "@/components/chat/MessageList";
 import MessageInput from "@/components/chat/MessageInput";
+import TypingIndicator from "@/components/chat/TypingIndicator";
 import CryptoUnlockPrompt from "@/components/chat/CryptoUnlockPrompt";
 
 // ============================================================
@@ -43,62 +47,12 @@ export default function ChannelView() {
   const { channelId } = useParams<{ channelId: string }>();
   const { serverId } = useOutletContext<OutletContext>();
   const socket = useSocket();
+  const { keysRestored, setKeysRestored } = useAuth();
 
   const { data: channels } = useChannels(serverId);
   const { data: members } = useServerMembers(serverId);
   const sendMessage = useSendMessage(channelId ?? "");
-
-  // Track whether the crypto worker has keys loaded.
-  // We use a state flag that starts as "unknown" and resolves via a probe.
-  const [cryptoUnlocked, setCryptoUnlocked] = useState<boolean | null>(null);
-
-  // ============================================================
-  // Probe crypto unlock state on mount
-  // ============================================================
-
-  useEffect(() => {
-    // Attempt a minimal worker call to check if keys are loaded.
-    // We do this by trying to decrypt a garbage payload — if keys are loaded,
-    // we'll get a crypto error (not a "keys not loaded" error).
-    // A simpler approach: try to encrypt a test message. If it succeeds, keys are loaded.
-    // If it fails with a "not unlocked" / "no private key" style error, show the prompt.
-    let cancelled = false;
-
-    async function checkCryptoState() {
-      try {
-        // Import dynamically to avoid circular dep issues
-        const { encryptMessage } = await import("@/lib/crypto");
-        // Try encrypting with a dummy recipient key (base64-encoded 32 zeros = invalid X25519 key)
-        // The worker will either fail with "not unlocked" or with a crypto error
-        await encryptMessage("probe", [
-          {
-            userId: "probe",
-            x25519PublicKey: btoa(String.fromCharCode(...new Uint8Array(32))),
-          },
-        ]);
-        // If we got here without a "not unlocked" error, keys are loaded
-        if (!cancelled) setCryptoUnlocked(true);
-      } catch (err) {
-        const error = err as Error;
-        // "not unlocked", "no private key", "key not found" etc. → show unlock prompt
-        const isNotUnlocked =
-          error.message?.toLowerCase().includes("unlock") ||
-          error.message?.toLowerCase().includes("not loaded") ||
-          error.message?.toLowerCase().includes("private key") ||
-          error.message?.toLowerCase().includes("no key");
-        if (!cancelled) {
-          // If the error is about the probe key being invalid (expected — means keys ARE loaded)
-          // or any other crypto error, we consider keys to be loaded
-          setCryptoUnlocked(!isNotUnlocked);
-        }
-      }
-    }
-
-    void checkCryptoState();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const { typingUserIds, emitTyping, stopTyping } = useTyping(channelId);
 
   // ============================================================
   // Subscribe to channel room on mount
@@ -127,9 +81,11 @@ export default function ChannelView() {
 
       if (recipients.length === 0) return;
 
+      // Clear typing indicator immediately on send
+      stopTyping();
       sendMessage.mutate({ plaintext, recipients });
     },
-    [channelId, members, sendMessage],
+    [channelId, members, sendMessage, stopTyping],
   );
 
   // ============================================================
@@ -138,7 +94,14 @@ export default function ChannelView() {
 
   const channel = channels?.find((c) => c.id === channelId);
   const channelName = channel?.name ?? "channel";
-  const isUnlocked = cryptoUnlocked === true;
+
+  // Resolve typing user IDs to display names using the server members list
+  const typingUsers = typingUserIds
+    .map((id) => {
+      const member = members?.find((m) => m.userId === id);
+      return member ? { userId: id, displayName: member.user.displayName } : null;
+    })
+    .filter((u): u is { userId: string; displayName: string } => u !== null);
 
   if (!channelId) {
     return (
@@ -151,19 +114,25 @@ export default function ChannelView() {
   return (
     <div className="flex-1 flex flex-col min-h-0 relative">
       {/* CryptoUnlockPrompt — full-area overlay when keys not loaded */}
-      {cryptoUnlocked === false && (
-        <CryptoUnlockPrompt onUnlocked={() => setCryptoUnlocked(true)} />
+      {!keysRestored && (
+        <CryptoUnlockPrompt onUnlocked={() => setKeysRestored(true)} />
       )}
 
       {/* Message list — flex-1, scrollable */}
       <MessageList channelId={channelId} channelName={channelName} />
 
+      {/* Typing indicator — fixed height to prevent layout shift */}
+      <div className="shrink-0 px-0">
+        <TypingIndicator typingUsers={typingUsers} />
+      </div>
+
       {/* Message input — border-t */}
       <div className="shrink-0 border-t border-zinc-700/40">
         <MessageInput
           onSend={handleSend}
-          disabled={!isUnlocked}
+          disabled={!keysRestored}
           placeholder={`Message #${channelName}`}
+          onTyping={emitTyping}
         />
       </div>
     </div>

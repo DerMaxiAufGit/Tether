@@ -18,9 +18,10 @@ interface MessageInputProps {
   onSend: (plaintext: string) => void;
   disabled?: boolean;
   placeholder?: string;
+  onTyping?: () => void;
 }
 
-export default function MessageInput({ onSend, disabled = false, placeholder = "Message" }: MessageInputProps) {
+export default function MessageInput({ onSend, disabled = false, placeholder = "Message", onTyping }: MessageInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const adjustHeight = useCallback(() => {
@@ -32,7 +33,8 @@ export default function MessageInput({ onSend, disabled = false, placeholder = "
 
   const handleInput = useCallback(() => {
     adjustHeight();
-  }, [adjustHeight]);
+    onTyping?.();
+  }, [adjustHeight, onTyping]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
