@@ -1,8 +1,9 @@
-import type { Socket } from "socket.io";
+import type { Socket, Server as SocketIOServer } from "socket.io";
 import type { FastifyBaseLogger } from "fastify";
 import { db } from "../../db/client.js";
 import { channels, serverMembers, dmParticipants } from "../../db/schema.js";
 import { eq, and } from "drizzle-orm";
+import { registerPresenceHandlers } from "./presence.js";
 
 /**
  * Registers connection and disconnection event handlers on a connected socket.
@@ -11,6 +12,7 @@ import { eq, and } from "drizzle-orm";
  *   - Joins the user's personal room: user:{userId}
  *   - Joins all server rooms the user is a member of: server:{serverId}
  *   - Joins all text channel rooms in those servers: channel:{channelId}
+ *   - Registers presence handlers (Redis INCR, snapshot, grace-period disconnect)
  *
  * Runtime events:
  *   - server:subscribe   — join a new server room after joining via invite; also joins channel rooms
@@ -20,7 +22,8 @@ import { eq, and } from "drizzle-orm";
  */
 export async function registerConnectionHandlers(
   socket: Socket,
-  logger: FastifyBaseLogger
+  logger: FastifyBaseLogger,
+  io: SocketIOServer,
 ): Promise<void> {
   const userId = socket.data.userId as string;
 
@@ -69,6 +72,10 @@ export async function registerConnectionHandlers(
     "User joined rooms",
   );
 
+  // Register presence handlers — INCR on connect, grace-period DECR on disconnect,
+  // snapshot to connecting socket, idle/active/dnd event listeners
+  await registerPresenceHandlers(socket, io, logger, memberships);
+
   // Join a new server room after joining via invite (no reconnect needed)
   // Also joins all text channel rooms for that server.
   socket.on("server:subscribe", async ({ serverId }: { serverId: string }) => {
@@ -107,17 +114,30 @@ export async function registerConnectionHandlers(
 
   // Join a specific channel room dynamically (e.g., after a new channel is created)
   // Verifies the user has access to the channel before allowing the join.
+  // Supports both server text channels (via serverMembers) and DM channels (via dmParticipants).
   socket.on("channel:subscribe", async ({ channelId }: { channelId: string }) => {
-    // Verify user is a member of the server that owns this channel
-    const [access] = await db
+    // First, try server channel access (inner join channels ↔ serverMembers)
+    const [serverAccess] = await db
       .select({ id: channels.id })
       .from(channels)
       .innerJoin(serverMembers, eq(channels.serverId, serverMembers.serverId))
       .where(and(eq(channels.id, channelId), eq(serverMembers.userId, userId)));
 
-    if (access) {
+    if (serverAccess) {
       await socket.join(`channel:${channelId}`);
       logger.info({ userId, channelId }, "User subscribed to channel room");
+      return;
+    }
+
+    // Fall back to DM channel access (dmParticipants)
+    const [dmAccess] = await db
+      .select({ id: dmParticipants.id })
+      .from(dmParticipants)
+      .where(and(eq(dmParticipants.channelId, channelId), eq(dmParticipants.userId, userId)));
+
+    if (dmAccess) {
+      await socket.join(`channel:${channelId}`);
+      logger.info({ userId, channelId }, "User subscribed to DM channel room");
     }
   });
 
@@ -126,6 +146,9 @@ export async function registerConnectionHandlers(
     socket.emit("pong");
   });
 
+  // Note: disconnect logging is now handled inside registerPresenceHandlers
+  // which also sets up the 30-second grace period for presence:offline broadcast.
+  // Socket.IO supports multiple handlers on the same event — both fire on disconnect.
   socket.on("disconnect", (reason) => {
     logger.info({ userId, socketId: socket.id, reason }, "User disconnected");
   });

@@ -5,11 +5,14 @@ import type { FastifyBaseLogger } from "fastify";
 import type { Server as HttpServer } from "node:http";
 import { socketAuthMiddleware } from "./middleware/auth.js";
 import { registerConnectionHandlers } from "./handlers/connection.js";
+import { redis } from "../db/redis.js";
 
 /**
  * Sets up the Socket.IO server attached to the provided HTTP server.
  * Uses Redis Streams adapter for horizontal scalability.
  * Gracefully degrades if Redis is unavailable (logs warning, no adapter).
+ *
+ * Also connects the shared Redis client used for presence operations.
  *
  * @returns The Socket.IO Server instance for use in route handlers
  */
@@ -56,12 +59,21 @@ export async function setupSocketIO(
     });
   }
 
+  // Connect the shared Redis client used for presence operations.
+  // Separate from the adapter client per established pattern (see STATE.md decision 01-05).
+  try {
+    await redis.connect();
+    logger.info({ redisUrl }, "Redis connected for presence operations");
+  } catch (err) {
+    logger.warn({ err, redisUrl }, "Shared Redis client failed to connect — presence features unavailable");
+  }
+
   // Register JWT authentication middleware
   io.use(socketAuthMiddleware);
 
   // Register connection handlers (async — fire-and-forget with error boundary)
   io.on("connection", (socket) => {
-    registerConnectionHandlers(socket, logger).catch((err: Error) =>
+    registerConnectionHandlers(socket, logger, io).catch((err: Error) =>
       logger.error({ err }, "Connection handler error")
     );
   });
