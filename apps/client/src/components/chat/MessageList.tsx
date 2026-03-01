@@ -16,6 +16,7 @@ import { useMessages } from "@/hooks/useMessages";
 import { useAuth } from "@/hooks/useAuth";
 import { useDeleteMessage } from "@/hooks/useMessages";
 import { useMarkChannelRead } from "@/hooks/useUnread";
+import { useReactions, useAddReaction, useRemoveReaction } from "@/hooks/useReactions";
 import MessageItem from "./MessageItem";
 import NewMessagesButton from "./NewMessagesButton";
 
@@ -58,14 +59,20 @@ interface MessageListProps {
   channelName: string;
   /** Server ID — required for unread tracking. Pass from ChannelView outlet context. */
   serverId?: string;
+  /** Channel members with X25519 public keys — required for reaction encryption */
+  members?: Array<{ userId: string; user: { x25519PublicKey: string } }>;
 }
 
-export default function MessageList({ channelId, channelName, serverId }: MessageListProps) {
+export default function MessageList({ channelId, channelName, serverId, members }: MessageListProps) {
   const { user } = useAuth();
   const { messages, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
     useMessages(channelId);
   const deleteMessage = useDeleteMessage(channelId);
   const markRead = useMarkChannelRead();
+  const { getReactionGroups } = useReactions(channelId);
+  const addReaction = useAddReaction();
+  const removeReaction = useRemoveReaction();
+  const reactionMutationPending = addReaction.isPending || removeReaction.isPending;
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const topSentinelRef = useRef<HTMLDivElement>(null);
@@ -222,6 +229,44 @@ export default function MessageList({ channelId, channelName, serverId }: Messag
   );
 
   // ============================================================
+  // Reaction handlers
+  // ============================================================
+
+  const buildRecipients = useCallback(() => {
+    if (!members) return [];
+    return members
+      .filter((m) => m.user.x25519PublicKey)
+      .map((m) => ({
+        userId: m.userId,
+        x25519PublicKey: m.user.x25519PublicKey,
+      }));
+  }, [members]);
+
+  const handleReact = useCallback(
+    (messageId: string, emoji: string) => {
+      const recipients = buildRecipients();
+      if (recipients.length === 0) return;
+      addReaction.mutate({ messageId, emoji, recipients });
+    },
+    [addReaction, buildRecipients],
+  );
+
+  const handleToggleReaction = useCallback(
+    (messageId: string, emoji: string) => {
+      const reactionGroups = getReactionGroups(messageId);
+      const group = reactionGroups.find((g) => g.emoji === emoji);
+      if (group?.hasOwnReaction) {
+        removeReaction.mutate({ messageId });
+      } else {
+        const recipients = buildRecipients();
+        if (recipients.length === 0) return;
+        addReaction.mutate({ messageId, emoji, recipients });
+      }
+    },
+    [addReaction, removeReaction, getReactionGroups, buildRecipients],
+  );
+
+  // ============================================================
   // Time-window grouping
   // ============================================================
 
@@ -309,6 +354,10 @@ export default function MessageList({ channelId, channelName, serverId }: Messag
                 isGrouped={isGrouped(index)}
                 isOwnMessage={message.senderId === user?.id}
                 onDelete={handleDelete}
+                reactionGroups={getReactionGroups(message.id)}
+                onReact={(emoji) => handleReact(message.id, emoji)}
+                onToggleReaction={(emoji) => handleToggleReaction(message.id, emoji)}
+                reactionMutationPending={reactionMutationPending}
               />
             ))}
           </div>

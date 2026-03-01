@@ -17,6 +17,8 @@
 import { useState, useCallback } from "react";
 import { ContextMenu, AlertDialog, Tooltip } from "radix-ui";
 import type { DecryptedMessage } from "@/hooks/useMessages";
+import type { ReactionGroup } from "@/hooks/useReactions";
+import { ReactionPicker } from "./ReactionPicker";
 
 // ============================================================
 // Helpers
@@ -145,14 +147,34 @@ function RetryIcon() {
 // MessageItem
 // ============================================================
 
+// 5 quick-react emojis shown in the hover toolbar
+const QUICK_REACT_EMOJIS = ["👍", "❤️", "😂", "😮", "😢"];
+
 interface MessageItemProps {
   message: DecryptedMessage;
   isGrouped: boolean;
   isOwnMessage: boolean;
   onDelete: (id: string) => void;
+  /** Grouped reactions for this message — emoji + count + hasOwnReaction */
+  reactionGroups?: ReactionGroup[];
+  /** Called when user picks an emoji from picker or quick-react buttons */
+  onReact?: (emoji: string) => void;
+  /** Called when user clicks a reaction pill (toggles own reaction on/off) */
+  onToggleReaction?: (emoji: string) => void;
+  /** True when a reaction add/remove mutation is in-flight (prevents double-click) */
+  reactionMutationPending?: boolean;
 }
 
-export default function MessageItem({ message, isGrouped, isOwnMessage, onDelete }: MessageItemProps) {
+export default function MessageItem({
+  message,
+  isGrouped,
+  isOwnMessage,
+  onDelete,
+  reactionGroups = [],
+  onReact,
+  onToggleReaction,
+  reactionMutationPending = false,
+}: MessageItemProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
 
@@ -271,6 +293,32 @@ export default function MessageItem({ message, isGrouped, isOwnMessage, onDelete
                 )}
                 {message.status === "failed" && <RetryIcon />}
               </div>
+
+              {/* Reaction pills — emoji + count */}
+              {reactionGroups.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {reactionGroups.map((group) => (
+                    <button
+                      key={group.emoji}
+                      onClick={() => onToggleReaction?.(group.emoji)}
+                      disabled={reactionMutationPending}
+                      className={`
+                        inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs
+                        border transition-colors disabled:opacity-50
+                        ${
+                          group.hasOwnReaction
+                            ? "bg-indigo-500/20 border-indigo-500/50 text-indigo-200 hover:bg-indigo-500/30"
+                            : "bg-zinc-800 border-zinc-700/50 text-zinc-300 hover:bg-zinc-700/50"
+                        }
+                      `}
+                      title={`${group.count} reaction${group.count !== 1 ? "s" : ""}`}
+                    >
+                      <span>{group.emoji}</span>
+                      <span className="font-medium">{group.count}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Hover toolbar — top-right corner */}
@@ -282,6 +330,67 @@ export default function MessageItem({ message, isGrouped, isOwnMessage, onDelete
                 ${isHovered ? "opacity-100" : "opacity-0 pointer-events-none"}
               `}
             >
+              {/* Quick-react emoji buttons */}
+              {onReact && QUICK_REACT_EMOJIS.map((emoji) => (
+                <Tooltip.Provider key={emoji} delayDuration={200}>
+                  <Tooltip.Root>
+                    <Tooltip.Trigger asChild>
+                      <button
+                        onClick={() => onReact(emoji)}
+                        disabled={reactionMutationPending}
+                        className="p-1.5 text-base hover:bg-zinc-700/50 rounded transition-colors disabled:opacity-50"
+                        aria-label={`React with ${emoji}`}
+                      >
+                        {emoji}
+                      </button>
+                    </Tooltip.Trigger>
+                    <Tooltip.Portal>
+                      <Tooltip.Content
+                        className="bg-zinc-900 text-zinc-200 text-xs px-2 py-1 rounded border border-zinc-700 z-50"
+                        sideOffset={4}
+                      >
+                        {emoji}
+                        <Tooltip.Arrow className="fill-zinc-900" />
+                      </Tooltip.Content>
+                    </Tooltip.Portal>
+                  </Tooltip.Root>
+                </Tooltip.Provider>
+              ))}
+
+              {/* Full emoji picker trigger */}
+              {onReact && (
+                <ReactionPicker
+                  onReact={onReact}
+                  trigger={
+                    <Tooltip.Provider delayDuration={200}>
+                      <Tooltip.Root>
+                        <Tooltip.Trigger asChild>
+                          <button
+                            disabled={reactionMutationPending}
+                            className="p-1.5 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-700/50 rounded transition-colors text-sm font-bold disabled:opacity-50"
+                            aria-label="More reactions"
+                          >
+                            +
+                          </button>
+                        </Tooltip.Trigger>
+                        <Tooltip.Portal>
+                          <Tooltip.Content
+                            className="bg-zinc-900 text-zinc-200 text-xs px-2 py-1 rounded border border-zinc-700 z-50"
+                            sideOffset={4}
+                          >
+                            Add Reaction
+                            <Tooltip.Arrow className="fill-zinc-900" />
+                          </Tooltip.Content>
+                        </Tooltip.Portal>
+                      </Tooltip.Root>
+                    </Tooltip.Provider>
+                  }
+                />
+              )}
+
+              {/* Separator before action buttons */}
+              {onReact && <div className="w-px h-4 bg-zinc-700/60 mx-0.5" />}
+
               {/* Copy button */}
               <Tooltip.Provider delayDuration={200}>
                 <Tooltip.Root>
