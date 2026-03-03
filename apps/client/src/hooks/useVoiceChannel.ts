@@ -38,6 +38,7 @@ import type {
   VoiceCameraPayload,
   VoiceSpeakingPayload,
   VoiceScreenSharePayload,
+  VoiceChannelUpdatePayload,
 } from "@tether/shared";
 
 // ============================================================
@@ -49,6 +50,8 @@ interface VoiceState {
   serverId: string | null;
   connectionState: "idle" | "requesting-mic" | "joining" | "connected" | "failed";
   participants: VoiceParticipant[];
+  // Tracks participants in ALL voice channels for sidebar display (not just own channel)
+  voiceChannelParticipants: Map<string, Array<{ userId: string; displayName: string; avatarUrl: string | null }>>;
   localStream: MediaStream | null;
   localCameraStream: MediaStream | null;
   remoteStreams: Map<string, MediaStream>;
@@ -110,6 +113,7 @@ export function useVoiceChannel() {
     serverId: null,
     connectionState: "idle",
     participants: [],
+    voiceChannelParticipants: new Map(),
     localStream: null,
     localCameraStream: null,
     remoteStreams: new Map(),
@@ -513,6 +517,20 @@ export function useVoiceChannel() {
     };
     handlersRef.current.onScreenShare = onScreenShare;
 
+    // voice:channel_update — server broadcasts enriched participant list to all server members
+    // Update voiceChannelParticipants map for sidebar display (works for ALL channels, not just own)
+    const onChannelUpdate = (data: VoiceChannelUpdatePayload) => {
+      setState((prev) => {
+        const next = new Map(prev.voiceChannelParticipants);
+        if (data.participants.length === 0) {
+          next.delete(data.channelId);
+        } else {
+          next.set(data.channelId, data.participants);
+        }
+        return { ...prev, voiceChannelParticipants: next };
+      });
+    };
+
     // Register all handlers
     socket.on("voice:joined", onJoined);
     socket.on("voice:participant_joined", onParticipantJoined);
@@ -525,6 +543,7 @@ export function useVoiceChannel() {
     socket.on("voice:camera", onCamera);
     socket.on("voice:speaking", onSpeaking);
     socket.on("voice:screen_share", onScreenShare);
+    socket.on("voice:channel_update", onChannelUpdate);
 
     return () => {
       socket.off("voice:joined", onJoined);
@@ -538,6 +557,7 @@ export function useVoiceChannel() {
       socket.off("voice:camera", onCamera);
       socket.off("voice:speaking", onSpeaking);
       socket.off("voice:screen_share", onScreenShare);
+      socket.off("voice:channel_update", onChannelUpdate);
     };
   }, [socket, createPeerConnection, handleDescription, closePeer]);
 
@@ -930,6 +950,7 @@ export function useVoiceChannel() {
     serverId: state.serverId,
     connectionState: state.connectionState,
     participants: state.participants,
+    voiceChannelParticipants: state.voiceChannelParticipants,
     localStream: state.localStream,
     localCameraStream: state.localCameraStream,
     remoteStreams: state.remoteStreams,
