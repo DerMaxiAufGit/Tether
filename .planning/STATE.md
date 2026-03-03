@@ -23,13 +23,13 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 ## Current Position
 
 Phase: 5 of 7 (Voice and Video) — IN PROGRESS
-Plan: 6/7 complete (05-01 done, 05-02 done, 05-03 done, 05-04 done, 05-05 done, 05-06 done)
-Status: Executing — 05-06 complete, 05-07 next
-Last activity: 2026-03-03 — 05-06 voice channel UI: ParticipantTile/Grid, VoiceChannelView, VoiceControls, ConnectionStats, VoicePiP, ChannelOrVoiceView routing
-Last session: 2026-03-03T10:53:00Z
-Stopped at: Completed 05-06-PLAN.md (voice channel UI — participant grid with speaking indicators, PiP window, voice controls in UserInfoBar, click-to-join voice channels)
+Plan: 8/10 complete (05-01 done, 05-02 done, 05-03 done, 05-04 done, 05-05 done, 05-06 done, 05-07 done, 05-08 done)
+Status: Executing — 05-08 complete, 05-09 next
+Last activity: 2026-03-03 — 05-08 PiP drag Y fix + button guard + bidirectional mute/deafen coupling
+Last session: 2026-03-03T14:57:19Z
+Stopped at: Completed 05-08-PLAN.md (PiP drag Y inversion fix, button pointer capture guard, bidirectional mute/deafen coupling in useVoiceChannel)
 
-Progress: [███████░░░] 70% (31/43 plans complete)
+Progress: [████████░░] 74% (32/43 plans complete)
 
 ## Performance Metrics
 
@@ -60,6 +60,7 @@ Progress: [███████░░░] 70% (31/43 plans complete)
 | Phase 05-voice-and-video P05-04 | 2 | 2 tasks | 2 files |
 | Phase 05-voice-and-video P05-05 | 3 | 2 tasks | 1 files |
 | Phase 05-voice-and-video P05-06 | 5 | 2 tasks | 12 files |
+| Phase 05-voice-and-video P05-08 | 2 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -188,6 +189,7 @@ Recent decisions affecting current work:
 - [Phase 05-05]: track.onended handles browser Stop sharing button auto-cleanup — pitfall 4 from research
 - [Phase 05-05]: remoteScreenShareStreamIdsRef populated from voice:screen_share events before ontrack fires — classifies incoming streams as camera vs screen share
 - [Phase 05-06]: Voice channel click uses voice.join() + navigate() for both WebRTC join and URL state; PiP draggable via setPointerCapture (no react-draggable dep); ChannelOrVoiceView delegates based on channel.type
+- [Phase 05-08]: PiP drag Y-axis uses bottom - dy (CSS bottom inverted vs clientY); button guard via e.target.closest('button') before setPointerCapture; toggleDeafen OFF auto-unmutes; toggleMute unmute while deafened also undeafens
 
 ### Pending Todos
 
