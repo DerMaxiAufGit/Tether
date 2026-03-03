@@ -140,12 +140,16 @@ export function ConnectionStats({ peerConnection, onClose }: ConnectionStatsProp
       <p className="text-zinc-300 text-xs font-semibold mb-2 uppercase tracking-wide">
         Connection Stats
       </p>
-      <div className="space-y-1.5">
-        <StatRow label="Ping / RTT" value={formatRtt(stats.rtt)} />
-        <StatRow label="Packet Loss" value={formatLoss(stats.packetLoss)} />
-        <StatRow label="Audio Codec" value={stats.codec ?? "—"} />
-        <StatRow label="Connection" value={stats.connectionType ?? "—"} />
-      </div>
+      {!peerConnection ? (
+        <p className="text-zinc-500 text-xs">Waiting for another participant…</p>
+      ) : (
+        <div className="space-y-1.5">
+          <StatRow label="Ping / RTT" value={formatRtt(stats.rtt)} />
+          <StatRow label="Packet Loss" value={formatLoss(stats.packetLoss)} />
+          <StatRow label="Audio Codec" value={stats.codec ?? "—"} />
+          <StatRow label="Connection" value={stats.connectionType ?? "—"} />
+        </div>
+      )}
     </div>
   );
 }

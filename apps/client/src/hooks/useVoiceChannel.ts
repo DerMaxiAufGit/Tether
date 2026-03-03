@@ -629,11 +629,12 @@ export function useVoiceChannel() {
 
     cleanupAll();
 
-    setState({
+    setState((prev) => ({
       channelId: null,
       serverId: null,
       connectionState: "idle",
       participants: [],
+      voiceChannelParticipants: prev.voiceChannelParticipants,
       localStream: null,
       localCameraStream: null,
       remoteStreams: new Map(),
@@ -644,7 +645,7 @@ export function useVoiceChannel() {
       remoteScreenShares: new Map(),
       speaking: false,
       error: null,
-    });
+    }));
   }, [socket, state.channelId, cleanupAll]);
 
   // ============================================================
@@ -944,10 +945,10 @@ export function useVoiceChannel() {
   // getFirstPeerConnection() — stable getter for the first active RTCPeerConnection
   // ============================================================
 
-  const getFirstPeerConnection = (): RTCPeerConnection | null => {
+  const getFirstPeerConnection = useCallback((): RTCPeerConnection | null => {
     const entry = peersRef.current.entries().next();
     return entry.done ? null : entry.value[1];
-  };
+  }, []);
 
   // ============================================================
   // Return value

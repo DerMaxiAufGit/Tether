@@ -138,21 +138,28 @@ export function VoiceControls() {
   const [showStats, setShowStats] = useState(false);
   const [quality, setQuality] = useState<Quality>("unknown");
 
-  // Poll RTCPeerConnection.getStats() every 3 seconds to derive quality from RTT
+  // Poll RTCPeerConnection.getStats() every 3 seconds to derive quality from RTT.
+  // getFirstPeerConnection is memoized (useCallback) and reads from a ref,
+  // so it is safe as a stable dependency that won't cause effect re-runs.
   useEffect(() => {
     if (voice.connectionState !== "connected") {
       setQuality("unknown");
       return;
     }
 
+    let cancelled = false;
+
     async function pollQuality() {
       const pc = voice.getFirstPeerConnection();
       if (!pc || pc.connectionState === "closed") {
-        setQuality("green");
+        // No peers yet (alone in channel) — show green (connected to server)
+        if (!cancelled) setQuality("green");
         return;
       }
       try {
         const report = await pc.getStats();
+        if (cancelled) return;
+
         let rtt: number | null = null;
         let loss: number | null = null;
 
@@ -184,13 +191,16 @@ export function VoiceControls() {
           setQuality("red");
         }
       } catch {
-        setQuality("unknown");
+        if (!cancelled) setQuality("unknown");
       }
     }
 
     void pollQuality();
     const interval = setInterval(() => void pollQuality(), 3000);
-    return () => clearInterval(interval);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
   }, [voice.connectionState, voice.getFirstPeerConnection]);
 
   // Don't render if idle
