@@ -638,7 +638,20 @@ export function useVoiceChannel() {
     // track.enabled = false sends silence without renegotiating (no ICE restart needed)
     audioTrack.enabled = !newMuted;
 
-    setState((prev) => ({ ...prev, muted: newMuted }));
+    // If unmuting while deafened, also undeafen (user wants to participate)
+    let newDeafened = state.deafened;
+    if (!newMuted && state.deafened) {
+      newDeafened = false;
+      // Re-enable all remote audio tracks
+      for (const [, stream] of state.remoteStreams) {
+        for (const track of stream.getAudioTracks()) {
+          track.enabled = true;
+        }
+      }
+      socket.emit("voice:deafen", { channelId: state.channelId, deafened: false });
+    }
+
+    setState((prev) => ({ ...prev, muted: newMuted, deafened: newDeafened }));
     socket.emit("voice:mute", { channelId: state.channelId, muted: newMuted });
 
     // If muting while speaking, immediately clear the speaking indicator
@@ -647,7 +660,7 @@ export function useVoiceChannel() {
       setState((prev) => ({ ...prev, speaking: false }));
       socket.emit("voice:speaking", { channelId: state.channelId, speaking: false });
     }
-  }, [socket, state.muted, state.channelId, state.speaking]);
+  }, [socket, state.muted, state.deafened, state.channelId, state.speaking, state.remoteStreams]);
 
   // ============================================================
   // toggleDeafen()
@@ -665,13 +678,20 @@ export function useVoiceChannel() {
       }
     }
 
-    // Convention: deafening also mutes (you can't hear others, so speaking is pointless)
     let newMuted = state.muted;
+
     if (newDeafened && !state.muted) {
+      // Deafen ON: also mute (can't hear others, so speaking is pointless)
       const audioTrack = localStreamRef.current?.getAudioTracks()[0];
       if (audioTrack) audioTrack.enabled = false;
       newMuted = true;
       socket.emit("voice:mute", { channelId: state.channelId, muted: true });
+    } else if (!newDeafened && state.muted) {
+      // Deafen OFF: also unmute (reverse the auto-mute)
+      const audioTrack = localStreamRef.current?.getAudioTracks()[0];
+      if (audioTrack) audioTrack.enabled = true;
+      newMuted = false;
+      socket.emit("voice:mute", { channelId: state.channelId, muted: false });
     }
 
     setState((prev) => ({ ...prev, deafened: newDeafened, muted: newMuted }));
