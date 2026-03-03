@@ -26,7 +26,7 @@ Requirements for Milestone 1 (MVP). Each maps to roadmap phases.
 
 - [ ] **CHAN-01**: User can create, edit, delete, and reorder text and voice channels
 - [x] **CHAN-02**: User can send and receive E2EE messages in text channels in real-time
-- [ ] **CHAN-03**: User can join voice channel with WebRTC P2P audio via Coturn STUN/TURN
+- [x] **CHAN-03**: User can join voice channel with WebRTC P2P audio via Coturn STUN/TURN
 
 ### Direct Messages
 
@@ -131,7 +131,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SRVR-05 | Phase 2 | Pending |
 | CHAN-01 | Phase 2 | Pending |
 | CHAN-02 | Phase 3 | Complete |
-| CHAN-03 | Phase 5 | Pending |
+| CHAN-03 | Phase 5 | Complete |
 | DM-01 | Phase 3 | Complete |
 | DM-02 | Phase 3 | Complete |
 | MSG-01 | Phase 3 | Complete |

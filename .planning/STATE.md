@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-03-01T02:24:00Z"
+last_updated: "2026-03-03T09:31:02.938Z"
 progress:
-  total_phases: 7
+  total_phases: 5
   completed_phases: 4
-  total_plans: 43
-  completed_plans: 26
+  total_plans: 35
+  completed_plans: 29
 ---
 
 # Project State
@@ -22,12 +22,12 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 
 ## Current Position
 
-Phase: 4 of 7 (Presence and Messaging UX) — COMPLETE
-Plan: 5/5 complete (04-01 through 04-05)
-Status: Phase verified (5/5 must-haves passed)
-Last activity: 2026-03-01 — Phase 4 verified, all 5 plans executed
+Phase: 5 of 7 (Voice and Video) — IN PROGRESS
+Plan: 1/7 complete (05-01 done)
+Status: Executing — 05-01 complete, 05-02 next
+Last activity: 2026-03-03 — 05-01 voice types and TURN credential endpoint complete
 
-Progress: [██████░░░░] 60% (26/43 plans complete)
+Progress: [██████░░░░] 62% (27/43 plans complete)
 
 ## Performance Metrics
 
@@ -52,6 +52,7 @@ Progress: [██████░░░░] 60% (26/43 plans complete)
 | Phase 03-e2ee-text-messaging P04 | 5 | 2 tasks | 11 files |
 | Phase 03-e2ee-text-messaging P05 | 5 | 2 tasks | 9 files |
 | Phase 03 P06 | 8 | 2 tasks | 6 files |
+| Phase 05-voice-and-video P05-01 | 57s | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -164,6 +165,7 @@ Recent decisions affecting current work:
 - 04-05: Reaction plaintext = JSON.stringify({ emoji, reactorId }) — reactorId in ciphertext prevents emoji substitution attacks
 - 04-05: Reaction state is socket-driven only (no REST fetch on load) — reactions live in useState, populated from real-time events; pre-existing reactions not loaded (v1 acceptable)
 - 04-05: Stable addedWrapper reference in useEffect closure for socket.off() with async reaction:added handler (same pattern as 03-03 message:created)
+- [Phase 05-voice-and-video]: COTURN_HOST env var defaults to localhost for dev; configurable for production deployment
 
 ### Pending Todos
 
@@ -176,5 +178,6 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-01T02:24:00Z
-Stopped at: Completed 04-05-PLAN.md (encrypted emoji reactions — reaction tables, ENCRYPT_REACTION/DECRYPT_REACTION crypto, emoji picker, reaction pills, real-time broadcast)
+Stopped at: Completed 05-01-PLAN.md (voice types and TURN credential endpoint — VoiceParticipant, VoiceSignalPayload, TurnCredentialsResponse types, GET /api/voice/turn-credentials HMAC-SHA1 endpoint)
+Last session: 2026-03-03T09:31:00Z
 Resume file: None
