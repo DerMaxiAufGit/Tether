@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-03-03T09:42:02.600Z"
+last_updated: "2026-03-03T09:45:02.045Z"
 progress:
   total_phases: 5
   completed_phases: 4
   total_plans: 35
-  completed_plans: 32
+  completed_plans: 33
 ---
 
 # Project State
@@ -23,11 +23,11 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 ## Current Position
 
 Phase: 5 of 7 (Voice and Video) — IN PROGRESS
-Plan: 4/7 complete (05-01 done, 05-02 done, 05-03 done, 05-04 done)
-Status: Executing — 05-04 complete, 05-05 next
-Last activity: 2026-03-03 — 05-04 mute/deafen controls + useVoiceActivity VAD hook (AnalyserNode RMS, speaking state broadcast)
+Plan: 5/7 complete (05-01 done, 05-02 done, 05-03 done, 05-04 done, 05-05 done)
+Status: Executing — 05-05 complete, 05-06 next
+Last activity: 2026-03-03 — 05-05 camera toggle (replaceTrack) + screen share (addTrack + multi-share + auto-cleanup via track.onended)
 
-Progress: [██████░░░░] 65% (29/43 plans complete)
+Progress: [███████░░░] 67% (30/43 plans complete)
 
 ## Performance Metrics
 
@@ -56,6 +56,7 @@ Progress: [██████░░░░] 65% (29/43 plans complete)
 | Phase 05-voice-and-video P05-02 | 5min | 2 tasks | 2 files |
 | Phase 05-voice-and-video P05-03 | 2 | 2 tasks | 3 files |
 | Phase 05-voice-and-video P05-04 | 2 | 2 tasks | 2 files |
+| Phase 05-voice-and-video P05-05 | 3 | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -179,6 +180,10 @@ Recent decisions affecting current work:
 - [Phase 05-voice-and-video]: 05-04: AudioContext not closed on mute — only RAF loop paused; recreating is expensive
 - [Phase 05-voice-and-video]: 05-04: channelIdRef synced via useEffect to avoid stale closure in VAD callback
 - [Phase 05-voice-and-video]: 05-04: Self-participant speaking flag driven from local VAD isSpeaking (not socket event) for zero-latency self-view
+- [Phase 05-05]: Camera toggle uses replaceTrack(null/track) for seamless on/off without ICE renegotiation
+- [Phase 05-05]: Screen share uses addTrack triggering onnegotiationneeded — perfect negotiation handles offer/answer automatically
+- [Phase 05-05]: track.onended handles browser Stop sharing button auto-cleanup — pitfall 4 from research
+- [Phase 05-05]: remoteScreenShareStreamIdsRef populated from voice:screen_share events before ontrack fires — classifies incoming streams as camera vs screen share
 
 ### Pending Todos
 

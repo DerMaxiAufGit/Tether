@@ -43,8 +43,8 @@ Requirements for Milestone 1 (MVP). Each maps to roadmap phases.
 ### Voice & Video
 
 - [x] **VOICE-01**: User can mute/deafen self in voice channel
-- [ ] **VOICE-02**: User can toggle camera on/off in voice channel
-- [ ] **VOICE-03**: User can share screen via getDisplayMedia
+- [x] **VOICE-02**: User can toggle camera on/off in voice channel
+- [x] **VOICE-03**: User can share screen via getDisplayMedia
 - [x] **VOICE-04**: User sees voice activity indicator for speaking participants
 
 ### Files & Media
@@ -139,8 +139,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | MSG-03 | Phase 4 | Complete |
 | MSG-04 | Phase 4 | Complete |
 | VOICE-01 | Phase 5 | Complete |
-| VOICE-02 | Phase 5 | Pending |
-| VOICE-03 | Phase 5 | Pending |
+| VOICE-02 | Phase 5 | Complete |
+| VOICE-03 | Phase 5 | Complete |
 | VOICE-04 | Phase 5 | Complete |
 | FILE-01 | Phase 6 | Pending |
 | FILE-02 | Phase 6 | Pending |
