@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-03-03T09:38:57.101Z"
+last_updated: "2026-03-03T09:42:02.600Z"
 progress:
   total_phases: 5
   completed_phases: 4
   total_plans: 35
-  completed_plans: 31
+  completed_plans: 32
 ---
 
 # Project State
@@ -23,11 +23,11 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 ## Current Position
 
 Phase: 5 of 7 (Voice and Video) — IN PROGRESS
-Plan: 3/7 complete (05-01 done, 05-02 done, 05-03 done)
-Status: Executing — 05-03 complete, 05-04 next
-Last activity: 2026-03-03 — 05-03 WebRTC P2P mesh hook (useVoiceChannel) and VoiceContext provider complete
+Plan: 4/7 complete (05-01 done, 05-02 done, 05-03 done, 05-04 done)
+Status: Executing — 05-04 complete, 05-05 next
+Last activity: 2026-03-03 — 05-04 mute/deafen controls + useVoiceActivity VAD hook (AnalyserNode RMS, speaking state broadcast)
 
-Progress: [██████░░░░] 63% (28/43 plans complete)
+Progress: [██████░░░░] 65% (29/43 plans complete)
 
 ## Performance Metrics
 
@@ -55,6 +55,7 @@ Progress: [██████░░░░] 63% (28/43 plans complete)
 | Phase 05-voice-and-video P05-01 | 57s | 2 tasks | 5 files |
 | Phase 05-voice-and-video P05-02 | 5min | 2 tasks | 2 files |
 | Phase 05-voice-and-video P05-03 | 2 | 2 tasks | 3 files |
+| Phase 05-voice-and-video P05-04 | 2 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -175,6 +176,9 @@ Recent decisions affecting current work:
 - [Phase 05-voice-and-video]: 05-03: RTCPeerConnections stored in useRef not useState — mutable without triggering re-renders; peersRef pattern for P2P mesh
 - [Phase 05-voice-and-video]: 05-03: iceTransportPolicy relay-only — prevents local IP exposure via TURN relay; ICE candidates buffered in pendingCandidatesRef until remote description is set
 - [Phase 05-voice-and-video]: 05-03: Perfect negotiation polite role by user.id < peerId lexicographic — stable assignment without coordination; VoiceProvider placed inside SocketProvider (dependency order)
+- [Phase 05-voice-and-video]: 05-04: AudioContext not closed on mute — only RAF loop paused; recreating is expensive
+- [Phase 05-voice-and-video]: 05-04: channelIdRef synced via useEffect to avoid stale closure in VAD callback
+- [Phase 05-voice-and-video]: 05-04: Self-participant speaking flag driven from local VAD isSpeaking (not socket event) for zero-latency self-view
 
 ### Pending Todos
 
@@ -192,4 +196,6 @@ Last session: 2026-03-03T10:33:00Z
 Stopped at: Completed 05-02-PLAN.md (voice signaling socket handlers — voice:join/leave/offer/answer/ice/mute/deafen/camera/speaking/screen_share, Redis participant tracking, disconnect cleanup)
 Last session: 2026-03-03T10:37:00Z
 Stopped at: Completed 05-03-PLAN.md (useVoiceChannel P2P mesh hook with perfect negotiation + VoiceContext provider wrapping AppShell)
+Last session: 2026-03-03T10:42:00Z
+Stopped at: Completed 05-04-PLAN.md (useVoiceActivity VAD hook with AnalyserNode RMS + mute/deafen refinement in useVoiceChannel)
 Resume file: None
