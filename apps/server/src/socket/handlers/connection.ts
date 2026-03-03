@@ -5,6 +5,7 @@ import { channels, serverMembers, dmParticipants, channelReadStates } from "../.
 import { eq, and } from "drizzle-orm";
 import { registerPresenceHandlers } from "./presence.js";
 import { registerTypingHandlers } from "./typing.js";
+import { registerVoiceHandlers } from "./voice.js";
 
 /**
  * Registers connection and disconnection event handlers on a connected socket.
@@ -80,6 +81,10 @@ export async function registerConnectionHandlers(
   // Register typing handlers — relay typing:start/stop via Redis Sets,
   // auto-clean typing state on disconnect
   await registerTypingHandlers(socket, io, logger);
+
+  // Register voice handlers — join/leave voice channels, WebRTC signaling relay,
+  // mute/deafen/camera/speaking state broadcast, Redis participant tracking
+  await registerVoiceHandlers(socket, io, logger);
 
   // Join a new server room after joining via invite (no reconnect needed)
   // Also joins all text channel rooms for that server.
