@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-03-03T09:45:02.045Z"
+last_updated: "2026-03-03T09:52:20.794Z"
 progress:
   total_phases: 5
   completed_phases: 4
   total_plans: 35
-  completed_plans: 33
+  completed_plans: 34
 ---
 
 # Project State
@@ -23,11 +23,13 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 ## Current Position
 
 Phase: 5 of 7 (Voice and Video) — IN PROGRESS
-Plan: 5/7 complete (05-01 done, 05-02 done, 05-03 done, 05-04 done, 05-05 done)
-Status: Executing — 05-05 complete, 05-06 next
-Last activity: 2026-03-03 — 05-05 camera toggle (replaceTrack) + screen share (addTrack + multi-share + auto-cleanup via track.onended)
+Plan: 6/7 complete (05-01 done, 05-02 done, 05-03 done, 05-04 done, 05-05 done, 05-06 done)
+Status: Executing — 05-06 complete, 05-07 next
+Last activity: 2026-03-03 — 05-06 voice channel UI: ParticipantTile/Grid, VoiceChannelView, VoiceControls, ConnectionStats, VoicePiP, ChannelOrVoiceView routing
+Last session: 2026-03-03T10:53:00Z
+Stopped at: Completed 05-06-PLAN.md (voice channel UI — participant grid with speaking indicators, PiP window, voice controls in UserInfoBar, click-to-join voice channels)
 
-Progress: [███████░░░] 67% (30/43 plans complete)
+Progress: [███████░░░] 70% (31/43 plans complete)
 
 ## Performance Metrics
 
@@ -57,6 +59,7 @@ Progress: [███████░░░] 67% (30/43 plans complete)
 | Phase 05-voice-and-video P05-03 | 2 | 2 tasks | 3 files |
 | Phase 05-voice-and-video P05-04 | 2 | 2 tasks | 2 files |
 | Phase 05-voice-and-video P05-05 | 3 | 2 tasks | 1 files |
+| Phase 05-voice-and-video P05-06 | 5 | 2 tasks | 12 files |
 
 ## Accumulated Context
 
@@ -184,6 +187,7 @@ Recent decisions affecting current work:
 - [Phase 05-05]: Screen share uses addTrack triggering onnegotiationneeded — perfect negotiation handles offer/answer automatically
 - [Phase 05-05]: track.onended handles browser Stop sharing button auto-cleanup — pitfall 4 from research
 - [Phase 05-05]: remoteScreenShareStreamIdsRef populated from voice:screen_share events before ontrack fires — classifies incoming streams as camera vs screen share
+- [Phase 05-06]: Voice channel click uses voice.join() + navigate() for both WebRTC join and URL state; PiP draggable via setPointerCapture (no react-draggable dep); ChannelOrVoiceView delegates based on channel.type
 
 ### Pending Todos
 
