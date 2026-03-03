@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-03-03T09:52:20.794Z"
+last_updated: "2026-03-03T15:33:24Z"
 progress:
   total_phases: 5
   completed_phases: 4
   total_plans: 35
-  completed_plans: 34
+  completed_plans: 35
 ---
 
 # Project State
@@ -22,14 +22,14 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 
 ## Current Position
 
-Phase: 5 of 7 (Voice and Video) — COMPLETE
-Plan: 10/10 complete (05-01 through 05-10 all done)
-Status: Phase complete — ready for Phase 6
-Last activity: 2026-03-03 — 05-10 voice participant sidebar: VoiceChannelUpdatePayload, buildChannelUpdatePayload, voiceChannelParticipants Map, ChannelItem sub-list with avatar circles
-Last session: 2026-03-03T10:01:02Z
-Stopped at: Completed 05-10-PLAN.md (voice participant sidebar list — enriched server broadcast, client Map state, sidebar colored-initial avatar sub-list for all voice channels)
+Phase: 5 of 7 (Voice and Video) — UAT gap closure in progress
+Plan: 11/13 complete (05-01 through 05-11 done, 05-12 and 05-13 pending)
+Status: In progress — UAT round 2 gap closure plans executing
+Last activity: 2026-03-03 — 05-11 camera self-view callback ref fix + PiP viewport edge clamping
+Last session: 2026-03-03T15:33:24Z
+Stopped at: Completed 05-11-PLAN.md (callback ref for ParticipantTile camera gray screen; Math.min clamping for PiP top/right edges)
 
-Progress: [█████████░] 78% (33/43 plans complete)
+Progress: [█████████░] 79% (35/44 plans complete)
 
 ## Performance Metrics
 
@@ -191,6 +191,7 @@ Recent decisions affecting current work:
 - [Phase 05-06]: Voice channel click uses voice.join() + navigate() for both WebRTC join and URL state; PiP draggable via setPointerCapture (no react-draggable dep); ChannelOrVoiceView delegates based on channel.type
 - [Phase 05-08]: PiP drag Y-axis uses bottom - dy (CSS bottom inverted vs clientY); button guard via e.target.closest('button') before setPointerCapture; toggleDeafen OFF auto-unmutes; toggleMute unmute while deafened also undeafens
 - [Phase 05-10]: voiceChannelParticipants NOT cleared on leave — sidebar shows other channels' occupants even when user is not in a call; avatarUrl null for now, Phase 6 will populate without client changes; ChannelItem outer div is plain sortable container, inner div holds styling to preserve dnd-kit behavior
+- [Phase 05-11]: Callback ref for conditional video mount: when <video> element is gated by showVideo boolean, use useCallback ref to set srcObject on mount (not useRef+useEffect which won't re-run if stream object is same reference); PiP Math.min(window.innerWidth - pipWidth, ...) pattern for all four viewport edge clamping
 
 ### Pending Todos
 
@@ -210,4 +211,6 @@ Last session: 2026-03-03T10:37:00Z
 Stopped at: Completed 05-03-PLAN.md (useVoiceChannel P2P mesh hook with perfect negotiation + VoiceContext provider wrapping AppShell)
 Last session: 2026-03-03T10:42:00Z
 Stopped at: Completed 05-04-PLAN.md (useVoiceActivity VAD hook with AnalyserNode RMS + mute/deafen refinement in useVoiceChannel)
+Last session: 2026-03-03T15:33:24Z
+Stopped at: Completed 05-11-PLAN.md (callback ref fixes ParticipantTile camera gray screen; Math.min viewport clamping fixes PiP top/right edge overflow)
 Resume file: None
