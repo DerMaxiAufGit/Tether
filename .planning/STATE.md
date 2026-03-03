@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-03-03T09:31:02.938Z"
+last_updated: "2026-03-03T09:38:57.101Z"
 progress:
   total_phases: 5
   completed_phases: 4
   total_plans: 35
-  completed_plans: 29
+  completed_plans: 31
 ---
 
 # Project State
@@ -23,9 +23,9 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 ## Current Position
 
 Phase: 5 of 7 (Voice and Video) — IN PROGRESS
-Plan: 2/7 complete (05-01 done, 05-02 done)
-Status: Executing — 05-02 complete, 05-03 next
-Last activity: 2026-03-03 — 05-02 voice signaling socket handlers and Redis participant tracking complete
+Plan: 3/7 complete (05-01 done, 05-02 done, 05-03 done)
+Status: Executing — 05-03 complete, 05-04 next
+Last activity: 2026-03-03 — 05-03 WebRTC P2P mesh hook (useVoiceChannel) and VoiceContext provider complete
 
 Progress: [██████░░░░] 63% (28/43 plans complete)
 
@@ -54,6 +54,7 @@ Progress: [██████░░░░] 63% (28/43 plans complete)
 | Phase 03 P06 | 8 | 2 tasks | 6 files |
 | Phase 05-voice-and-video P05-01 | 57s | 2 tasks | 5 files |
 | Phase 05-voice-and-video P05-02 | 5min | 2 tasks | 2 files |
+| Phase 05-voice-and-video P05-03 | 2 | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -171,6 +172,9 @@ Recent decisions affecting current work:
 - 05-02: voice:offer/answer/ice relay to user:{to} room (not socket ID) — delivery survives reconnects without client needing updated socket ID
 - 05-02: voice:channel_update broadcast to server:{serverId} room on join/leave — sidebar shows live participant counts without subscribing to individual voice rooms
 - 05-02: Disconnect cleanup reads voice:channel:{userId} first — no TTL needed on participant sets since cleanup is event-driven
+- [Phase 05-voice-and-video]: 05-03: RTCPeerConnections stored in useRef not useState — mutable without triggering re-renders; peersRef pattern for P2P mesh
+- [Phase 05-voice-and-video]: 05-03: iceTransportPolicy relay-only — prevents local IP exposure via TURN relay; ICE candidates buffered in pendingCandidatesRef until remote description is set
+- [Phase 05-voice-and-video]: 05-03: Perfect negotiation polite role by user.id < peerId lexicographic — stable assignment without coordination; VoiceProvider placed inside SocketProvider (dependency order)
 
 ### Pending Todos
 
@@ -186,4 +190,6 @@ Last session: 2026-03-01T02:24:00Z
 Stopped at: Completed 05-01-PLAN.md (voice types and TURN credential endpoint — VoiceParticipant, VoiceSignalPayload, TurnCredentialsResponse types, GET /api/voice/turn-credentials HMAC-SHA1 endpoint)
 Last session: 2026-03-03T10:33:00Z
 Stopped at: Completed 05-02-PLAN.md (voice signaling socket handlers — voice:join/leave/offer/answer/ice/mute/deafen/camera/speaking/screen_share, Redis participant tracking, disconnect cleanup)
+Last session: 2026-03-03T10:37:00Z
+Stopped at: Completed 05-03-PLAN.md (useVoiceChannel P2P mesh hook with perfect negotiation + VoiceContext provider wrapping AppShell)
 Resume file: None

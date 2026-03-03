@@ -174,6 +174,6 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 | 2. Servers and Channels | 0/8 | Planned | - |
 | 3. E2EE Text Messaging | 8/8 | Complete | 2026-03-01 |
 | 4. Presence and Messaging UX | 5/5 | Complete | 2026-03-01 |
-| 5. Voice and Video | 2/7 | In Progress|  |
+| 5. Voice and Video | 3/7 | In Progress|  |
 | 6. Files and Media | 0/4 | Not started | - |
 | 7. Permissions | 0/4 | Not started | - |
