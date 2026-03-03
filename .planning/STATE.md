@@ -22,14 +22,14 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 
 ## Current Position
 
-Phase: 5 of 7 (Voice and Video) — UAT gap closure in progress
-Plan: 12/13 complete (05-01 through 05-12 done, 05-13 pending)
-Status: In progress — UAT round 2 gap closure plans executing
-Last activity: 2026-03-03 — 05-12 ConnectionStats wired to real RTCPeerConnection via getFirstPeerConnection()
-Last session: 2026-03-03T15:36:00Z
-Stopped at: Completed 05-12-PLAN.md (getFirstPeerConnection() getter in useVoiceChannel; VoiceControls quality dot uses real RTT; ConnectionStats popup shows live stats)
+Phase: 5 of 7 (Voice and Video) — UAT gap closure complete
+Plan: 13/13 complete (05-01 through 05-13 all done)
+Status: Phase complete — ready for Phase 6
+Last activity: 2026-03-03 — 05-13 voice:channel_update snapshots emitted on connect for sidebar pre-population
+Last session: 2026-03-03T15:34:04Z
+Stopped at: Completed 05-13-PLAN.md (on-connect voice snapshot: query Redis SMEMBERS per voice channel, emit voice:channel_update to connecting socket for occupied channels)
 
-Progress: [█████████░] 79% (35/44 plans complete)
+Progress: [█████████░] 80% (36/44 plans complete)
 
 ## Performance Metrics
 
@@ -193,6 +193,7 @@ Recent decisions affecting current work:
 - [Phase 05-10]: voiceChannelParticipants NOT cleared on leave — sidebar shows other channels' occupants even when user is not in a call; avatarUrl null for now, Phase 6 will populate without client changes; ChannelItem outer div is plain sortable container, inner div holds styling to preserve dnd-kit behavior
 - [Phase 05-11]: Callback ref for conditional video mount: when <video> element is gated by showVideo boolean, use useCallback ref to set srcObject on mount (not useRef+useEffect which won't re-run if stream object is same reference); PiP Math.min(window.innerWidth - pipWidth, ...) pattern for all four viewport edge clamping
 - [Phase 05-12]: getFirstPeerConnection() is a plain function (not useCallback) reading from peersRef Map — stable ref access, no memoization needed; expose ref-readers as getter functions rather than exposing the ref itself; quality thresholds: green <150ms RTT + <2% loss, yellow <300ms + <8%, red otherwise
+- [Phase 05-13]: On-connect voice snapshot uses inline key pattern voice:participants:{channelId} (not imported helper) — avoids circular import between connection.ts and voice.ts; emit to socket (not io.to(room)) — targeted catch-up, not broadcast
 
 ### Pending Todos
 
@@ -216,4 +217,6 @@ Last session: 2026-03-03T15:33:24Z
 Stopped at: Completed 05-11-PLAN.md (callback ref fixes ParticipantTile camera gray screen; Math.min viewport clamping fixes PiP top/right edge overflow)
 Last session: 2026-03-03T15:36:00Z
 Stopped at: Completed 05-12-PLAN.md (getFirstPeerConnection() getter exposes first RTCPeerConnection; VoiceControls polls RTT via getStats() for quality dot; ConnectionStats receives live peerConnection)
+Last session: 2026-03-03T15:34:04Z
+Stopped at: Completed 05-13-PLAN.md (on-connect voice:channel_update snapshots — inline Redis SMEMBERS per voice channel, emit to connecting socket only for occupied channels, try/catch prevents blocking handler registration)
 Resume file: None
