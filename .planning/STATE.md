@@ -23,11 +23,11 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 ## Current Position
 
 Phase: 5 of 7 (Voice and Video) — IN PROGRESS
-Plan: 8/10 complete (05-01 done, 05-02 done, 05-03 done, 05-04 done, 05-05 done, 05-06 done, 05-07 done, 05-08 done)
-Status: Executing — 05-08 complete, 05-09 next
-Last activity: 2026-03-03 — 05-08 PiP drag Y fix + button guard + bidirectional mute/deafen coupling
-Last session: 2026-03-03T14:57:19Z
-Stopped at: Completed 05-08-PLAN.md (PiP drag Y inversion fix, button pointer capture guard, bidirectional mute/deafen coupling in useVoiceChannel)
+Plan: 9/10 complete (05-01 done, 05-02 done, 05-03 done, 05-04 done, 05-05 done, 05-06 done, 05-07 done, 05-08 done, 05-09 done)
+Status: Executing — 05-09 complete, 05-10 next
+Last activity: 2026-03-03 — 05-09 two-row UserInfoBar, badge positioning, localCameraStream self-view
+Last session: 2026-03-03T15:00:00Z
+Stopped at: Completed 05-09-PLAN.md (two-row UserInfoBar layout, mute/deafen badges outside avatar clip region, localCameraStream for self-view tile)
 
 Progress: [████████░░] 74% (32/43 plans complete)
 
