@@ -111,10 +111,19 @@ export function VoicePiP() {
       hasDraggedRef.current = true;
     }
 
-    setPos({
-      right: Math.max(0, dragStartRef.current.right - dx),
-      bottom: Math.max(0, dragStartRef.current.bottom - dy),
-    });
+    const pipWidth = containerRef.current?.offsetWidth ?? 280;
+    const pipHeight = containerRef.current?.offsetHeight ?? 120;
+
+    const newRight = Math.min(
+      window.innerWidth - pipWidth,
+      Math.max(0, dragStartRef.current.right - dx),
+    );
+    const newBottom = Math.min(
+      window.innerHeight - pipHeight,
+      Math.max(0, dragStartRef.current.bottom - dy),
+    );
+
+    setPos({ right: newRight, bottom: newBottom });
 
     e.preventDefault();
   }, []);
