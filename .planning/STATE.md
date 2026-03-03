@@ -23,11 +23,11 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 ## Current Position
 
 Phase: 5 of 7 (Voice and Video) — IN PROGRESS
-Plan: 1/7 complete (05-01 done)
-Status: Executing — 05-01 complete, 05-02 next
-Last activity: 2026-03-03 — 05-01 voice types and TURN credential endpoint complete
+Plan: 2/7 complete (05-01 done, 05-02 done)
+Status: Executing — 05-02 complete, 05-03 next
+Last activity: 2026-03-03 — 05-02 voice signaling socket handlers and Redis participant tracking complete
 
-Progress: [██████░░░░] 62% (27/43 plans complete)
+Progress: [██████░░░░] 63% (28/43 plans complete)
 
 ## Performance Metrics
 
@@ -53,6 +53,7 @@ Progress: [██████░░░░] 62% (27/43 plans complete)
 | Phase 03-e2ee-text-messaging P05 | 5 | 2 tasks | 9 files |
 | Phase 03 P06 | 8 | 2 tasks | 6 files |
 | Phase 05-voice-and-video P05-01 | 57s | 2 tasks | 5 files |
+| Phase 05-voice-and-video P05-02 | 5min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -166,6 +167,10 @@ Recent decisions affecting current work:
 - 04-05: Reaction state is socket-driven only (no REST fetch on load) — reactions live in useState, populated from real-time events; pre-existing reactions not loaded (v1 acceptable)
 - 04-05: Stable addedWrapper reference in useEffect closure for socket.off() with async reaction:added handler (same pattern as 03-03 message:created)
 - [Phase 05-voice-and-video]: COTURN_HOST env var defaults to localhost for dev; configurable for production deployment
+- 05-02: voice:channel:{userId} Redis String tracks single active channel per user — O(1) lookup on disconnect, enables auto-leave without iterating all voice rooms
+- 05-02: voice:offer/answer/ice relay to user:{to} room (not socket ID) — delivery survives reconnects without client needing updated socket ID
+- 05-02: voice:channel_update broadcast to server:{serverId} room on join/leave — sidebar shows live participant counts without subscribing to individual voice rooms
+- 05-02: Disconnect cleanup reads voice:channel:{userId} first — no TTL needed on participant sets since cleanup is event-driven
 
 ### Pending Todos
 
@@ -179,5 +184,6 @@ None yet.
 
 Last session: 2026-03-01T02:24:00Z
 Stopped at: Completed 05-01-PLAN.md (voice types and TURN credential endpoint — VoiceParticipant, VoiceSignalPayload, TurnCredentialsResponse types, GET /api/voice/turn-credentials HMAC-SHA1 endpoint)
-Last session: 2026-03-03T09:31:00Z
+Last session: 2026-03-03T10:33:00Z
+Stopped at: Completed 05-02-PLAN.md (voice signaling socket handlers — voice:join/leave/offer/answer/ice/mute/deafen/camera/speaking/screen_share, Redis participant tracking, disconnect cleanup)
 Resume file: None
