@@ -22,14 +22,14 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 
 ## Current Position
 
-Phase: 5 of 7 (Voice and Video) — IN PROGRESS
-Plan: 9/10 complete (05-01 done, 05-02 done, 05-03 done, 05-04 done, 05-05 done, 05-06 done, 05-07 done, 05-08 done, 05-09 done)
-Status: Executing — 05-09 complete, 05-10 next
-Last activity: 2026-03-03 — 05-09 two-row UserInfoBar, badge positioning, localCameraStream self-view
-Last session: 2026-03-03T15:00:00Z
-Stopped at: Completed 05-09-PLAN.md (two-row UserInfoBar layout, mute/deafen badges outside avatar clip region, localCameraStream for self-view tile)
+Phase: 5 of 7 (Voice and Video) — COMPLETE
+Plan: 10/10 complete (05-01 through 05-10 all done)
+Status: Phase complete — ready for Phase 6
+Last activity: 2026-03-03 — 05-10 voice participant sidebar: VoiceChannelUpdatePayload, buildChannelUpdatePayload, voiceChannelParticipants Map, ChannelItem sub-list with avatar circles
+Last session: 2026-03-03T10:01:02Z
+Stopped at: Completed 05-10-PLAN.md (voice participant sidebar list — enriched server broadcast, client Map state, sidebar colored-initial avatar sub-list for all voice channels)
 
-Progress: [████████░░] 74% (32/43 plans complete)
+Progress: [█████████░] 78% (33/43 plans complete)
 
 ## Performance Metrics
 
@@ -190,6 +190,7 @@ Recent decisions affecting current work:
 - [Phase 05-05]: remoteScreenShareStreamIdsRef populated from voice:screen_share events before ontrack fires — classifies incoming streams as camera vs screen share
 - [Phase 05-06]: Voice channel click uses voice.join() + navigate() for both WebRTC join and URL state; PiP draggable via setPointerCapture (no react-draggable dep); ChannelOrVoiceView delegates based on channel.type
 - [Phase 05-08]: PiP drag Y-axis uses bottom - dy (CSS bottom inverted vs clientY); button guard via e.target.closest('button') before setPointerCapture; toggleDeafen OFF auto-unmutes; toggleMute unmute while deafened also undeafens
+- [Phase 05-10]: voiceChannelParticipants NOT cleared on leave — sidebar shows other channels' occupants even when user is not in a call; avatarUrl null for now, Phase 6 will populate without client changes; ChannelItem outer div is plain sortable container, inner div holds styling to preserve dnd-kit behavior
 
 ### Pending Todos
 
