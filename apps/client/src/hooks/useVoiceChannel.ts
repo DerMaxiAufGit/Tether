@@ -11,6 +11,8 @@
  *   - Perfect negotiation: lexicographic userId comparison determines polite/impolite role
  *   - Stable wrapper refs for async socket handlers (React StrictMode pitfall, pattern from 03-03)
  *   - Mic required to join — block until getUserMedia succeeds
+ *   - Camera uses replaceTrack (no renegotiation); screen share uses addTrack (triggers renegotiation)
+ *   - Camera permission requested on toggle, not at join (locked decision)
  */
 
 import {
@@ -35,6 +37,7 @@ import type {
   VoiceDeafenPayload,
   VoiceCameraPayload,
   VoiceSpeakingPayload,
+  VoiceScreenSharePayload,
 } from "@tether/shared";
 
 // ============================================================
@@ -52,6 +55,7 @@ interface VoiceState {
   deafened: boolean;
   cameraOn: boolean;
   screenShares: Map<string, MediaStream>;
+  remoteScreenShares: Map<string, { userId: string; stream: MediaStream }>;
   speaking: boolean;
   error: string | null;
 }
@@ -71,6 +75,19 @@ export function useVoiceChannel() {
   const makingOfferRef = useRef<Map<string, boolean>>(new Map());
   const iceServersRef = useRef<RTCIceServer[]>([]);
 
+  // Camera track refs — camera sender per peer (distinct from screen share senders)
+  const cameraTrackRef = useRef<MediaStreamTrack | null>(null);
+  const videoSendersRef = useRef<Map<string, RTCRtpSender>>(new Map());
+
+  // Screen share refs — senders per streamId across peers, local screen share streams
+  const screenShareSendersRef = useRef<
+    Map<string, Array<{ sender: RTCRtpSender; peerId: string }>>
+  >(new Map());
+  const localScreenSharesRef = useRef<Map<string, MediaStream>>(new Map());
+
+  // Known screen share streamIds per peer (populated from voice:screen_share socket events)
+  const remoteScreenShareStreamIdsRef = useRef<Map<string, Set<string>>>(new Map());
+
   // Stable refs for async socket handlers (avoids React StrictMode pitfall)
   const handlersRef = useRef<{
     onJoined?: (data: VoiceJoinedPayload) => void;
@@ -83,6 +100,7 @@ export function useVoiceChannel() {
     onDeafen?: (data: VoiceDeafenPayload & { userId: string }) => void;
     onCamera?: (data: VoiceCameraPayload & { userId: string }) => void;
     onSpeaking?: (data: VoiceSpeakingPayload & { userId: string }) => void;
+    onScreenShare?: (data: VoiceScreenSharePayload & { userId: string }) => void;
   }>({});
 
   // ---- React state ----
@@ -97,6 +115,7 @@ export function useVoiceChannel() {
     deafened: false,
     cameraOn: false,
     screenShares: new Map(),
+    remoteScreenShares: new Map(),
     speaking: false,
     error: null,
   });
@@ -152,6 +171,7 @@ export function useVoiceChannel() {
     }
     makingOfferRef.current.delete(peerId);
     pendingCandidatesRef.current.delete(peerId);
+    videoSendersRef.current.delete(peerId);
   }, []);
 
   // ============================================================
@@ -169,6 +189,24 @@ export function useVoiceChannel() {
       }
       localStreamRef.current = null;
     }
+
+    // Stop camera track if active
+    if (cameraTrackRef.current) {
+      cameraTrackRef.current.stop();
+      cameraTrackRef.current = null;
+    }
+    videoSendersRef.current.clear();
+
+    // Stop all screen share tracks and clear onended handlers
+    for (const [, stream] of localScreenSharesRef.current) {
+      for (const track of stream.getTracks()) {
+        track.onended = null;
+        track.stop();
+      }
+    }
+    localScreenSharesRef.current.clear();
+    screenShareSendersRef.current.clear();
+    remoteScreenShareStreamIdsRef.current.clear();
 
     iceServersRef.current = [];
   }, [closePeer]);
@@ -235,6 +273,22 @@ export function useVoiceChannel() {
         }
       }
 
+      // Add camera track if already active (camera on before new peer joins)
+      if (cameraTrackRef.current && localStreamRef.current) {
+        const sender = pc.addTrack(cameraTrackRef.current, localStreamRef.current);
+        videoSendersRef.current.set(peerId, sender);
+      }
+
+      // Add any active screen share tracks (screen share on before new peer joins)
+      for (const [streamId, screenStream] of localScreenSharesRef.current) {
+        const existingSenders = screenShareSendersRef.current.get(streamId) ?? [];
+        for (const track of screenStream.getTracks()) {
+          const sender = pc.addTrack(track, screenStream);
+          existingSenders.push({ sender, peerId });
+        }
+        screenShareSendersRef.current.set(streamId, existingSenders);
+      }
+
       // ICE candidate handler — send to remote peer via signaling server
       pc.onicecandidate = ({ candidate }) => {
         if (candidate) {
@@ -242,10 +296,21 @@ export function useVoiceChannel() {
         }
       };
 
-      // Remote track handler — store the incoming remote stream
+      // Remote track handler — classify as camera/audio vs screen share based on known streamIds
       pc.ontrack = (event) => {
         const [stream] = event.streams;
-        if (stream) {
+        if (!stream) return;
+
+        const knownScreenShareIds = remoteScreenShareStreamIdsRef.current.get(peerId);
+        const isScreenShare = knownScreenShareIds?.has(stream.id) ?? false;
+
+        if (isScreenShare) {
+          setState((prev) => {
+            const next = new Map(prev.remoteScreenShares);
+            next.set(stream.id, { userId: peerId, stream });
+            return { ...prev, remoteScreenShares: next };
+          });
+        } else {
           setState((prev) => {
             const next = new Map(prev.remoteStreams);
             next.set(peerId, stream);
@@ -321,12 +386,20 @@ export function useVoiceChannel() {
     // voice:participant_left — close and clean up the peer's connection
     const onParticipantLeft = (data: VoiceParticipantLeftPayload) => {
       closePeer(data.userId);
+      remoteScreenShareStreamIdsRef.current.delete(data.userId);
       setState((prev) => ({
         ...prev,
         participants: prev.participants.filter((p) => p.userId !== data.userId),
         remoteStreams: (() => {
           const next = new Map(prev.remoteStreams);
           next.delete(data.userId);
+          return next;
+        })(),
+        remoteScreenShares: (() => {
+          const next = new Map(prev.remoteScreenShares);
+          for (const [streamId, entry] of next) {
+            if (entry.userId === data.userId) next.delete(streamId);
+          }
           return next;
         })(),
       }));
@@ -407,6 +480,37 @@ export function useVoiceChannel() {
     };
     handlersRef.current.onSpeaking = onSpeaking;
 
+    // voice:screen_share — a participant started or stopped a screen share
+    // Track the streamId so ontrack can classify incoming tracks correctly
+    const onScreenShare = (data: VoiceScreenSharePayload & { userId: string }) => {
+      const knownIds =
+        remoteScreenShareStreamIdsRef.current.get(data.userId) ?? new Set<string>();
+
+      if (data.action === "started") {
+        knownIds.add(data.streamId);
+        remoteScreenShareStreamIdsRef.current.set(data.userId, knownIds);
+      } else {
+        knownIds.delete(data.streamId);
+        // Remove from remoteScreenShares state
+        setState((prev) => {
+          const next = new Map(prev.remoteScreenShares);
+          next.delete(data.streamId);
+          return { ...prev, remoteScreenShares: next };
+        });
+      }
+
+      // Update participant screenShareCount
+      setState((prev) => ({
+        ...prev,
+        participants: prev.participants.map((p) =>
+          p.userId === data.userId
+            ? { ...p, screenShareCount: data.screenShareCount }
+            : p,
+        ),
+      }));
+    };
+    handlersRef.current.onScreenShare = onScreenShare;
+
     // Register all handlers
     socket.on("voice:joined", onJoined);
     socket.on("voice:participant_joined", onParticipantJoined);
@@ -418,6 +522,7 @@ export function useVoiceChannel() {
     socket.on("voice:deafen", onDeafen);
     socket.on("voice:camera", onCamera);
     socket.on("voice:speaking", onSpeaking);
+    socket.on("voice:screen_share", onScreenShare);
 
     return () => {
       socket.off("voice:joined", onJoined);
@@ -430,6 +535,7 @@ export function useVoiceChannel() {
       socket.off("voice:deafen", onDeafen);
       socket.off("voice:camera", onCamera);
       socket.off("voice:speaking", onSpeaking);
+      socket.off("voice:screen_share", onScreenShare);
     };
   }, [socket, createPeerConnection, handleDescription, closePeer]);
 
@@ -512,6 +618,7 @@ export function useVoiceChannel() {
       deafened: false,
       cameraOn: false,
       screenShares: new Map(),
+      remoteScreenShares: new Map(),
       speaking: false,
       error: null,
     });
@@ -575,6 +682,209 @@ export function useVoiceChannel() {
   }, [socket, state.deafened, state.muted, state.channelId, state.remoteStreams]);
 
   // ============================================================
+  // toggleCamera()
+  // ============================================================
+
+  const toggleCamera = useCallback(async () => {
+    if (!state.channelId) return;
+
+    if (!state.cameraOn) {
+      // Camera ON: request camera permission (on toggle, not at join — locked decision)
+      let videoTrack: MediaStreamTrack;
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { width: { ideal: 640 }, height: { ideal: 360 } },
+        });
+        videoTrack = stream.getVideoTracks()[0];
+      } catch (err) {
+        console.error("[voice] Camera access denied:", err);
+        return;
+      }
+      cameraTrackRef.current = videoTrack;
+
+      // Add or replace track on each peer connection
+      for (const [peerId, pc] of peersRef.current) {
+        const existingSender = videoSendersRef.current.get(peerId);
+        if (existingSender) {
+          // replaceTrack — no renegotiation needed (seamless switch)
+          await existingSender.replaceTrack(videoTrack);
+        } else {
+          // First camera use for this peer — addTrack triggers onnegotiationneeded
+          const sender = pc.addTrack(videoTrack, localStreamRef.current!);
+          videoSendersRef.current.set(peerId, sender);
+        }
+      }
+
+      // Apply bandwidth constraint for 4+ participants
+      if (state.participants.length >= 4) {
+        for (const sender of videoSendersRef.current.values()) {
+          const params = sender.getParameters();
+          if (params.encodings.length > 0) {
+            params.encodings[0].maxBitrate = 200_000; // 200 kbps
+            params.encodings[0].maxFramerate = 15;
+            await sender.setParameters(params);
+          }
+        }
+      }
+
+      setState((prev) => ({ ...prev, cameraOn: true }));
+      socket.emit("voice:camera", { channelId: state.channelId, cameraOn: true });
+    } else {
+      // Camera OFF: replaceTrack(null) — sends nothing, no renegotiation
+      for (const sender of videoSendersRef.current.values()) {
+        await sender.replaceTrack(null);
+      }
+
+      // Stop the camera track and release hardware
+      cameraTrackRef.current?.stop();
+      cameraTrackRef.current = null;
+
+      setState((prev) => ({ ...prev, cameraOn: false }));
+      socket.emit("voice:camera", { channelId: state.channelId, cameraOn: false });
+    }
+  }, [socket, state.cameraOn, state.channelId, state.participants.length]);
+
+  // ============================================================
+  // startScreenShare()
+  // ============================================================
+
+  const startScreenShare = useCallback(async () => {
+    if (!state.channelId) return;
+
+    let screenStream: MediaStream;
+    try {
+      // Shows the browser's screen/window/tab picker
+      screenStream = await navigator.mediaDevices.getDisplayMedia({
+        video: true,
+        audio: false,
+      });
+    } catch (err) {
+      console.error("[voice] Screen share failed or was cancelled:", err);
+      return;
+    }
+
+    const streamId = screenStream.id;
+    const channelId = state.channelId;
+
+    // Add each screen share track to all peer connections (triggers onnegotiationneeded)
+    const senderEntries: Array<{ sender: RTCRtpSender; peerId: string }> = [];
+    for (const [peerId, pc] of peersRef.current) {
+      for (const track of screenStream.getTracks()) {
+        const sender = pc.addTrack(track, screenStream);
+        senderEntries.push({ sender, peerId });
+      }
+    }
+    screenShareSendersRef.current.set(streamId, senderEntries);
+    localScreenSharesRef.current.set(streamId, screenStream);
+
+    // Apply bandwidth constraint for 4+ participants
+    if (state.participants.length >= 4) {
+      for (const { sender } of senderEntries) {
+        const params = sender.getParameters();
+        if (params.encodings.length > 0) {
+          params.encodings[0].maxBitrate = 200_000; // 200 kbps
+          params.encodings[0].maxFramerate = 15;
+          await sender.setParameters(params);
+        }
+      }
+    }
+
+    // Auto-cleanup when user clicks the browser's "Stop sharing" button
+    // Each track fires onended when the user or system stops the capture
+    for (const track of screenStream.getTracks()) {
+      track.onended = () => {
+        // Remove track from all peer connections (triggers renegotiation)
+        for (const pc of peersRef.current.values()) {
+          const sender = pc.getSenders().find((s) => s.track === track);
+          if (sender) {
+            pc.removeTrack(sender);
+          }
+        }
+
+        // Clean up local state
+        localScreenSharesRef.current.delete(streamId);
+        screenShareSendersRef.current.delete(streamId);
+
+        setState((prev) => {
+          const next = new Map(prev.screenShares);
+          next.delete(streamId);
+          return { ...prev, screenShares: next };
+        });
+
+        socket.emit("voice:screen_share", {
+          channelId,
+          screenShareCount: localScreenSharesRef.current.size,
+          streamId,
+          action: "stopped",
+        });
+      };
+    }
+
+    // Update local screen shares state
+    setState((prev) => {
+      const next = new Map(prev.screenShares);
+      next.set(streamId, screenStream);
+      return { ...prev, screenShares: next };
+    });
+
+    socket.emit("voice:screen_share", {
+      channelId,
+      screenShareCount: localScreenSharesRef.current.size,
+      streamId,
+      action: "started",
+    });
+  }, [socket, state.channelId, state.participants.length]);
+
+  // ============================================================
+  // stopScreenShare(streamId)
+  // ============================================================
+
+  const stopScreenShare = useCallback(
+    (streamId: string) => {
+      if (!state.channelId) return;
+
+      const stream = localScreenSharesRef.current.get(streamId);
+      if (!stream) return;
+
+      // Stop all tracks — clear onended first to prevent double-cleanup
+      for (const track of stream.getTracks()) {
+        track.onended = null;
+        track.stop();
+      }
+
+      // Remove senders from all peer connections (triggers renegotiation)
+      const senderEntries = screenShareSendersRef.current.get(streamId) ?? [];
+      for (const { sender, peerId } of senderEntries) {
+        const pc = peersRef.current.get(peerId);
+        if (pc) {
+          try {
+            pc.removeTrack(sender);
+          } catch {
+            // Sender may already be removed if peer disconnected
+          }
+        }
+      }
+
+      localScreenSharesRef.current.delete(streamId);
+      screenShareSendersRef.current.delete(streamId);
+
+      setState((prev) => {
+        const next = new Map(prev.screenShares);
+        next.delete(streamId);
+        return { ...prev, screenShares: next };
+      });
+
+      socket.emit("voice:screen_share", {
+        channelId: state.channelId,
+        screenShareCount: localScreenSharesRef.current.size,
+        streamId,
+        action: "stopped",
+      });
+    },
+    [socket, state.channelId],
+  );
+
+  // ============================================================
   // Cleanup on unmount
   // ============================================================
 
@@ -597,6 +907,7 @@ export function useVoiceChannel() {
     localStream: state.localStream,
     remoteStreams: state.remoteStreams,
     screenShares: state.screenShares,
+    remoteScreenShares: state.remoteScreenShares,
     muted: state.muted,
     deafened: state.deafened,
     cameraOn: state.cameraOn,
@@ -608,6 +919,8 @@ export function useVoiceChannel() {
     leave,
     toggleMute,
     toggleDeafen,
-    // toggleCamera and startScreenShare added in plan 05-05
+    toggleCamera,
+    startScreenShare,
+    stopScreenShare,
   };
 }
