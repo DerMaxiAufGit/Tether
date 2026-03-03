@@ -118,7 +118,7 @@ Plans:
   4. User can share their screen via browser prompt and all voice channel participants see the screen share stream
   5. Voice activity indicator lights up in real-time next to a participant when they are speaking
   6. ICE candidate exchange does not begin until the call is explicitly accepted (no IP leak before acceptance)
-**Plans**: 10 plans
+**Plans**: 13 plans
 
 Plans:
 - [ ] 05-01-PLAN.md — Shared voice types + Coturn TURN credential REST endpoint (HMAC-SHA1 ephemeral credentials)
@@ -131,6 +131,9 @@ Plans:
 - [ ] 05-08-PLAN.md — UAT gap closure: PiP drag Y inversion fix, PiP button isolation, mute/deafen coupling logic
 - [ ] 05-09-PLAN.md — UAT gap closure: UserInfoBar two-row layout, badge positioning above avatar, camera toggle self-view
 - [ ] 05-10-PLAN.md — UAT gap closure: voice channel participant sidebar list with avatars
+- [ ] 05-11-PLAN.md — UAT gap closure: camera self-view callback ref fix + PiP viewport edge clamping
+- [ ] 05-12-PLAN.md — UAT gap closure: wire ConnectionStats to real RTCPeerConnection via getFirstPeerConnection()
+- [ ] 05-13-PLAN.md — UAT gap closure: emit voice channel snapshots on socket connect for sidebar pre-population
 
 ### Phase 6: Files and Media
 **Goal**: Users can upload files and images that are encrypted client-side before leaving the browser, stored in MinIO, and displayed inline in chat — the server never sees file bytes.
@@ -177,6 +180,6 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 | 2. Servers and Channels | 0/8 | Planned | - |
 | 3. E2EE Text Messaging | 8/8 | Complete | 2026-03-01 |
 | 4. Presence and Messaging UX | 5/5 | Complete | 2026-03-01 |
-| 5. Voice and Video | 6/10 | In Progress|  |
+| 5. Voice and Video | 10/13 | In Progress|  |
 | 6. Files and Media | 0/4 | Not started | - |
 | 7. Permissions | 0/4 | Not started | - |
