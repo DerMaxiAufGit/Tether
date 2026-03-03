@@ -13,6 +13,7 @@
 import { Outlet } from "react-router-dom";
 import { SocketProvider } from "@/hooks/useSocket";
 import { useIdleDetection } from "@/hooks/useIdleDetection";
+import { VoiceProvider } from "@/contexts/VoiceContext";
 import ServerList from "@/components/server/ServerList";
 
 // ============================================================
@@ -34,14 +35,17 @@ export default function AppShell() {
     <SocketProvider>
       {/* Idle detection — emits presence:idle / presence:active via socket */}
       <IdleDetector />
-      <div className="flex h-screen bg-zinc-950 overflow-hidden">
-        {/* Persistent server icon strip */}
-        <ServerList />
-        {/* Nested route content: WelcomePage, ServerView, etc. */}
-        <div className="flex-1 min-w-0">
-          <Outlet />
+      {/* VoiceProvider — inside SocketProvider so useVoiceChannel can call useSocket() */}
+      <VoiceProvider>
+        <div className="flex h-screen bg-zinc-950 overflow-hidden">
+          {/* Persistent server icon strip */}
+          <ServerList />
+          {/* Nested route content: WelcomePage, ServerView, etc. */}
+          <div className="flex-1 min-w-0">
+            <Outlet />
+          </div>
         </div>
-      </div>
+      </VoiceProvider>
     </SocketProvider>
   );
 }
