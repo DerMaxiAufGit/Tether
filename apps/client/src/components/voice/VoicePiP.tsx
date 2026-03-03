@@ -86,6 +86,9 @@ export function VoicePiP() {
   // ---- Drag handlers ----
 
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
+    // Don't initiate drag when clicking buttons (mute, disconnect)
+    if ((e.target as HTMLElement).closest('button')) return;
+
     draggingRef.current = true;
     hasDraggedRef.current = false;
     dragStartRef.current = {
@@ -110,7 +113,7 @@ export function VoicePiP() {
 
     setPos({
       right: Math.max(0, dragStartRef.current.right - dx),
-      bottom: Math.max(0, dragStartRef.current.bottom + dy),
+      bottom: Math.max(0, dragStartRef.current.bottom - dy),
     });
 
     e.preventDefault();
