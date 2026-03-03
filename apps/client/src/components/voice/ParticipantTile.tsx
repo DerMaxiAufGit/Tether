@@ -157,23 +157,23 @@ export function ParticipantTile({
             <span className="text-white text-2xl font-bold select-none">{initial}</span>
           </div>
         )}
-
-        {/* Mute/deafen badges — bottom-right corner stack */}
-        {(participant.muted || participant.deafened) && (
-          <div className="absolute bottom-0.5 right-0.5 flex gap-0.5">
-            {participant.deafened && (
-              <div className="w-4 h-4 rounded-full bg-red-600 flex items-center justify-center">
-                <HeadphoneOffIcon />
-              </div>
-            )}
-            {participant.muted && !participant.deafened && (
-              <div className="w-4 h-4 rounded-full bg-red-600 flex items-center justify-center">
-                <MicOffIcon />
-              </div>
-            )}
-          </div>
-        )}
       </div>
+
+      {/* Mute/deafen badges — top-right corner of tile, outside avatar clip region */}
+      {(participant.muted || participant.deafened) && (
+        <div className="absolute top-2 right-2 flex gap-1">
+          {participant.deafened && (
+            <div className="w-5 h-5 rounded-full bg-red-600 flex items-center justify-center">
+              <HeadphoneOffIcon />
+            </div>
+          )}
+          {participant.muted && !participant.deafened && (
+            <div className="w-5 h-5 rounded-full bg-red-600 flex items-center justify-center">
+              <MicOffIcon />
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Display name */}
       <span className="text-zinc-200 text-xs font-medium truncate max-w-full px-2 text-center">

@@ -180,9 +180,6 @@ function UserInfoBar() {
           {user.displayName}
         </span>
 
-        {/* Voice controls — shown when in a call */}
-        {inCall && <VoiceControls />}
-
         {/* Settings gear */}
         <button
           onClick={() => navigate("/change-password")}
@@ -195,6 +192,13 @@ function UserInfoBar() {
           </svg>
         </button>
       </div>
+
+      {/* Voice controls row — full width, only when in call */}
+      {inCall && (
+        <div className="flex items-center justify-center px-2 pb-2">
+          <VoiceControls />
+        </div>
+      )}
     </div>
   );
 }
