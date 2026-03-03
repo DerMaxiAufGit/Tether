@@ -22,6 +22,7 @@ import {
 import { useSocket } from "@/hooks/useSocket";
 import { useAuth } from "@/hooks/useAuth";
 import { api } from "@/lib/api";
+import { useVoiceActivity } from "@/hooks/useVoiceActivity";
 import type {
   VoiceParticipant,
   VoiceJoinedPayload,
@@ -99,6 +100,45 @@ export function useVoiceChannel() {
     speaking: false,
     error: null,
   });
+
+  // ============================================================
+  // Voice Activity Detection — broadcasts speaking state to room
+  // ============================================================
+
+  // Stable ref for channelId used inside the VAD callback (avoids stale closure)
+  const channelIdRef = useRef<string | null>(state.channelId);
+  useEffect(() => {
+    channelIdRef.current = state.channelId;
+  }, [state.channelId]);
+
+  const handleSpeakingChange = useCallback(
+    (speaking: boolean) => {
+      setState((prev) => ({ ...prev, speaking }));
+      const cid = channelIdRef.current;
+      if (cid) {
+        socket.emit("voice:speaking", { channelId: cid, speaking });
+      }
+    },
+    [socket],
+  );
+
+  const { isSpeaking } = useVoiceActivity({
+    stream: state.localStream,
+    enabled: !state.muted, // stop broadcasting "speaking" when mic is muted
+    onSpeakingChange: handleSpeakingChange,
+  });
+
+  // Keep self-participant's speaking flag in sync with the local VAD output
+  useEffect(() => {
+    if (!user) return;
+    setState((prev) => ({
+      ...prev,
+      speaking: isSpeaking,
+      participants: prev.participants.map((p) =>
+        p.userId === user.id ? { ...p, speaking: isSpeaking } : p,
+      ),
+    }));
+  }, [isSpeaking, user]);
 
   // ============================================================
   // Utility: close and remove a single peer connection
@@ -488,11 +528,19 @@ export function useVoiceChannel() {
     if (!audioTrack) return;
 
     const newMuted = !state.muted;
+    // track.enabled = false sends silence without renegotiating (no ICE restart needed)
     audioTrack.enabled = !newMuted;
 
     setState((prev) => ({ ...prev, muted: newMuted }));
     socket.emit("voice:mute", { channelId: state.channelId, muted: newMuted });
-  }, [socket, state.muted, state.channelId]);
+
+    // If muting while speaking, immediately clear the speaking indicator
+    // (VAD loop will stop due to enabled=false, but we clear early for responsiveness)
+    if (newMuted && state.speaking) {
+      setState((prev) => ({ ...prev, speaking: false }));
+      socket.emit("voice:speaking", { channelId: state.channelId, speaking: false });
+    }
+  }, [socket, state.muted, state.channelId, state.speaking]);
 
   // ============================================================
   // toggleDeafen()
