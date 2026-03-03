@@ -57,9 +57,10 @@ function MicIcon({ muted }: { muted: boolean }) {
 
 function HeadphoneIcon({ deafened }: { deafened: boolean }) {
   return deafened ? (
-    // Headphone off
+    // Headphones with diagonal slash
     <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-      <path d="M4.18 4.18L2.77 5.59 4 6.82V19c0 1.1.9 2 2 2h12c.34 0 .65-.1.92-.24l1.32 1.32 1.41-1.41L4.18 4.18zM6 19V8.82l9.18 9.18H6zM8 1v2.18l9.59 9.59C18.96 12.03 20 10.63 20 9V3h-2v6h-2V1H8z" />
+      <path d="M12 1c-4.97 0-9 4.03-9 9v7c0 1.66 1.34 3 3 3h3v-8H5v-2c0-3.87 3.13-7 7-7s7 3.13 7 7v2h-4v8h3c1.66 0 3-1.34 3-3v-7c0-4.97-4.03-9-9-9z" />
+      <line x1="3" y1="3" x2="21" y2="21" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
     </svg>
   ) : (
     // Headphones
@@ -69,16 +70,10 @@ function HeadphoneIcon({ deafened }: { deafened: boolean }) {
   );
 }
 
-function CameraIcon({ on }: { on: boolean }) {
-  return on ? (
-    // Camera
+function CameraIcon() {
+  return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
       <path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z" />
-    </svg>
-  ) : (
-    // Camera off
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-      <path d="M21 6.5l-4-4-9.65 9.65L4 8.5v9l4-4v3c0 .55.45 1 1 1h10c.55 0 1-.45 1-1v-3.5l4 4v-9.5z" />
     </svg>
   );
 }
@@ -86,7 +81,7 @@ function CameraIcon({ on }: { on: boolean }) {
 function ScreenShareIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-      <path d="M20 18c1.1 0 1.99-.9 1.99-2L22 6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4zM4 16V6h16v10.01L4 16zm9-6.87V13h-2V9.13C9.21 9.56 8 10.94 8 12.57c0 1.89 1.5 3.43 3.43 3.43.48 0 .94-.1 1.36-.27L14 17l.98-1.54c1.18-.9 1.95-2.32 1.95-3.89C16.93 9.1 15.26 7.53 13 7.13z" />
+      <path d="M21 3H3c-1.11 0-2 .89-2 2v14c0 1.11.89 2 2 2h18c1.11 0 2-.89 2-2V5c0-1.11-.89-2-2-2zm0 16.02H3V4.98h18v14.04zM10 12H8l4-4 4 4h-2v4h-4v-4z" />
     </svg>
   );
 }
@@ -107,20 +102,23 @@ interface ControlButtonProps {
   onClick: () => void;
   title: string;
   active?: boolean;   // active = red background (muted/deafened state)
+  glowing?: boolean;  // glowing = green glow (camera on / screen sharing)
   children: React.ReactNode;
 }
 
-function ControlButton({ onClick, title, active = false, children }: ControlButtonProps) {
+function ControlButton({ onClick, title, active = false, glowing = false, children }: ControlButtonProps) {
   return (
     <button
       onClick={onClick}
       title={title}
       className={`
         w-8 h-8 rounded-full flex items-center justify-center
-        transition-colors cursor-pointer
+        transition-all cursor-pointer
         ${active
           ? "bg-red-600 hover:bg-red-500 text-white"
-          : "bg-zinc-700 hover:bg-zinc-600 text-zinc-300"
+          : glowing
+            ? "bg-emerald-600 hover:bg-emerald-500 text-white shadow-[0_0_10px_rgba(16,185,129,0.5)]"
+            : "bg-zinc-700 hover:bg-zinc-600 text-zinc-300"
         }
       `}
     >
@@ -246,14 +244,16 @@ export function VoiceControls() {
       <ControlButton
         onClick={() => void voice.toggleCamera()}
         title={voice.cameraOn ? "Turn off camera" : "Turn on camera"}
+        glowing={voice.cameraOn}
       >
-        <CameraIcon on={voice.cameraOn} />
+        <CameraIcon />
       </ControlButton>
 
       {/* Screen share */}
       <ControlButton
-        onClick={() => void voice.startScreenShare()}
-        title="Share screen"
+        onClick={() => voice.screenShares.size > 0 ? voice.stopScreenShare([...voice.screenShares.keys()][0]) : void voice.startScreenShare()}
+        title={voice.screenShares.size > 0 ? "Stop sharing" : "Share screen"}
+        glowing={voice.screenShares.size > 0}
       >
         <ScreenShareIcon />
       </ControlButton>
