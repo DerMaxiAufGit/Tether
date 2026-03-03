@@ -101,6 +101,9 @@ await server.register(markReadRoute, { prefix: "/api" });
 await server.register(addReactionRoute, { prefix: "/api" });
 await server.register(removeReactionRoute, { prefix: "/api" });
 
+// Voice routes
+await server.register(import("./routes/voice/index.js"), { prefix: "/api/voice" });
+
 // Graceful shutdown
 const shutdown = async (): Promise<void> => {
   server.log.info("Shutting down server...");
