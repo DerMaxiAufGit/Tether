@@ -118,7 +118,7 @@ Plans:
   4. User can share their screen via browser prompt and all voice channel participants see the screen share stream
   5. Voice activity indicator lights up in real-time next to a participant when they are speaking
   6. ICE candidate exchange does not begin until the call is explicitly accepted (no IP leak before acceptance)
-**Plans**: 7 plans
+**Plans**: 10 plans
 
 Plans:
 - [ ] 05-01-PLAN.md — Shared voice types + Coturn TURN credential REST endpoint (HMAC-SHA1 ephemeral credentials)
@@ -127,7 +127,10 @@ Plans:
 - [ ] 05-04-PLAN.md — Mute/deafen controls + voice activity detection (MediaStreamTrack.enabled, AnalyserNode RMS VAD with hysteresis)
 - [ ] 05-05-PLAN.md — Camera toggle + screen share (replaceTrack for camera, addTrack for screen share, multi-share support, 360p/200kbps bandwidth limit)
 - [ ] 05-06-PLAN.md — Voice channel UI (participant grid, speaking indicators, voice controls in UserInfoBar, floating PiP, connection stats, channel join/leave wiring)
-- [ ] 05-07-PLAN.md — Human verification checkpoint (9 test scenarios covering all voice/video functionality)
+- [ ] 05-07-PLAN.md — Human verification checkpoint (12 test scenarios covering all voice/video functionality)
+- [ ] 05-08-PLAN.md — UAT gap closure: PiP drag Y inversion fix, PiP button isolation, mute/deafen coupling logic
+- [ ] 05-09-PLAN.md — UAT gap closure: UserInfoBar two-row layout, badge positioning above avatar, camera toggle self-view
+- [ ] 05-10-PLAN.md — UAT gap closure: voice channel participant sidebar list with avatars
 
 ### Phase 6: Files and Media
 **Goal**: Users can upload files and images that are encrypted client-side before leaving the browser, stored in MinIO, and displayed inline in chat — the server never sees file bytes.
@@ -174,6 +177,6 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 | 2. Servers and Channels | 0/8 | Planned | - |
 | 3. E2EE Text Messaging | 8/8 | Complete | 2026-03-01 |
 | 4. Presence and Messaging UX | 5/5 | Complete | 2026-03-01 |
-| 5. Voice and Video | 6/7 | In Progress|  |
+| 5. Voice and Video | 6/10 | In Progress|  |
 | 6. Files and Media | 0/4 | Not started | - |
 | 7. Permissions | 0/4 | Not started | - |
