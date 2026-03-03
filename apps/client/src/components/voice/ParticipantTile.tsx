@@ -10,7 +10,7 @@
  *   - Screen share mode: full-tile <video> at 2x grid size
  */
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import type { VoiceParticipant } from "@tether/shared";
 
 // ============================================================
@@ -77,13 +77,25 @@ export function ParticipantTile({
   isScreenShare = false,
   isSelf = false,
 }: ParticipantTileProps) {
-  const videoRef = useRef<HTMLVideoElement>(null);
+  // Screen share tile uses a plain ref + effect (stream is always present when tile is shown)
+  const screenShareRef = useRef<HTMLVideoElement>(null);
 
-  // Attach stream to video element
   useEffect(() => {
-    if (!videoRef.current || !stream) return;
-    videoRef.current.srcObject = stream;
+    if (!screenShareRef.current || !stream) return;
+    screenShareRef.current.srcObject = stream;
   }, [stream]);
+
+  // Regular camera tile uses a callback ref so srcObject is assigned the moment
+  // the <video> element mounts (fixes gray screen when cameraOn flips true
+  // without a stream object change that would re-trigger a plain useEffect)
+  const videoCallbackRef = useCallback(
+    (el: HTMLVideoElement | null) => {
+      if (el && stream) {
+        el.srcObject = stream;
+      }
+    },
+    [stream],
+  );
 
   const hasVideo = stream
     ? stream.getVideoTracks().some((t) => t.enabled && t.readyState === "live")
@@ -104,7 +116,7 @@ export function ParticipantTile({
       >
         {showScreenVideo ? (
           <video
-            ref={videoRef}
+            ref={screenShareRef}
             autoPlay
             playsInline
             muted
@@ -146,7 +158,7 @@ export function ParticipantTile({
       >
         {showVideo ? (
           <video
-            ref={videoRef}
+            ref={videoCallbackRef}
             autoPlay
             playsInline
             muted={isSelf} // mute self-view to prevent echo
