@@ -1,8 +1,10 @@
 import type { Socket, Server as SocketIOServer } from "socket.io";
 import type { FastifyBaseLogger } from "fastify";
+import type { VoiceChannelUpdatePayload } from "@tether/shared";
 import { db } from "../../db/client.js";
-import { channels, serverMembers, dmParticipants, channelReadStates } from "../../db/schema.js";
-import { eq, and } from "drizzle-orm";
+import { channels, serverMembers, dmParticipants, channelReadStates, users } from "../../db/schema.js";
+import { eq, and, inArray } from "drizzle-orm";
+import { redis } from "../../db/redis.js";
 import { registerPresenceHandlers } from "./presence.js";
 import { registerTypingHandlers } from "./typing.js";
 import { registerVoiceHandlers } from "./voice.js";
@@ -73,6 +75,43 @@ export async function registerConnectionHandlers(
     },
     "User joined rooms",
   );
+
+  // Emit voice channel snapshots so the sidebar is pre-populated on connect.
+  // Without this, occupied channels only appear after the next join/leave event.
+  try {
+    const voiceChannels = await db
+      .select({ id: channels.id, serverId: channels.serverId })
+      .from(channels)
+      .innerJoin(serverMembers, eq(channels.serverId, serverMembers.serverId))
+      .where(and(eq(serverMembers.userId, userId), eq(channels.type, "voice")));
+
+    for (const vc of voiceChannels) {
+      const memberIds = await redis.sMembers(`voice:participants:${vc.id}`);
+      if (memberIds.length === 0) continue;
+
+      const rows = await db
+        .select({ id: users.id, displayName: users.displayName })
+        .from(users)
+        .where(inArray(users.id, memberIds));
+
+      const participants = memberIds
+        .map((id) => {
+          const row = rows.find((r) => r.id === id);
+          if (!row) return null;
+          return { userId: id, displayName: row.displayName, avatarUrl: null as string | null };
+        })
+        .filter((p): p is NonNullable<typeof p> => p !== null);
+
+      const payload: VoiceChannelUpdatePayload = {
+        channelId: vc.id,
+        participantCount: participants.length,
+        participants,
+      };
+      socket.emit("voice:channel_update", payload);
+    }
+  } catch (err) {
+    logger.error({ err, userId }, "voice channel snapshot error on connect");
+  }
 
   // Register presence handlers — INCR on connect, grace-period DECR on disconnect,
   // snapshot to connecting socket, idle/active/dnd event listeners
