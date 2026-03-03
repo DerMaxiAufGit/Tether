@@ -10,6 +10,7 @@ import type {
   VoiceScreenSharePayload,
   VoiceSpeakingPayload,
   VoiceParticipant,
+  VoiceChannelUpdatePayload,
 } from "@tether/shared";
 import { redis } from "../../db/redis.js";
 import { db } from "../../db/client.js";
@@ -46,13 +47,10 @@ async function leaveVoiceChannel(
   // Broadcast participant_left to voice room
   io.to(`voice:${channelId}`).emit("voice:participant_left", { channelId, userId });
 
-  // Broadcast updated participant count to server room
+  // Broadcast enriched participant list to server room for sidebar display
   if (serverId) {
-    const remainingCount = await redis.sCard(participantsKey(channelId));
-    io.to(`server:${serverId}`).emit("voice:channel_update", {
-      channelId,
-      participantCount: remainingCount,
-    });
+    const channelUpdate = await buildChannelUpdatePayload(channelId);
+    io.to(`server:${serverId}`).emit("voice:channel_update", channelUpdate);
   }
 
   logger.info({ userId, channelId }, "User left voice channel");
@@ -83,6 +81,38 @@ async function buildParticipantList(userIds: string[]): Promise<VoiceParticipant
       speaking: false,
       screenShareCount: 0,
     }));
+}
+
+/**
+ * Build an enriched VoiceChannelUpdatePayload for broadcast to all server members.
+ * Includes a lightweight participant list (userId, displayName, avatarUrl) for sidebar display.
+ * avatarUrl is null for now — Phase 6 will populate it when user avatars are added.
+ */
+async function buildChannelUpdatePayload(channelId: string): Promise<VoiceChannelUpdatePayload> {
+  const memberIds = await redis.sMembers(participantsKey(channelId));
+
+  if (memberIds.length === 0) {
+    return { channelId, participantCount: 0, participants: [] };
+  }
+
+  const rows = await db
+    .select({ id: users.id, displayName: users.displayName })
+    .from(users)
+    .where(inArray(users.id, memberIds));
+
+  const participants = memberIds
+    .map((id) => {
+      const row = rows.find((r) => r.id === id);
+      if (!row) return null;
+      return {
+        userId: id,
+        displayName: row.displayName,
+        avatarUrl: null as string | null, // Phase 6 will populate
+      };
+    })
+    .filter((p): p is NonNullable<typeof p> => p !== null);
+
+  return { channelId, participantCount: participants.length, participants };
 }
 
 // ---------------------------------------------------------------------------
@@ -175,12 +205,10 @@ export async function registerVoiceHandlers(
         participant: selfParticipant,
       });
 
-      // Broadcast updated participant count to server room
+      // Broadcast enriched participant list to server room for sidebar display
       if (serverId) {
-        io.to(`server:${serverId}`).emit("voice:channel_update", {
-          channelId,
-          participantCount: memberIds.length,
-        });
+        const channelUpdate = await buildChannelUpdatePayload(channelId);
+        io.to(`server:${serverId}`).emit("voice:channel_update", channelUpdate);
       }
 
       logger.info({ userId, channelId, participantCount: memberIds.length }, "User joined voice channel");

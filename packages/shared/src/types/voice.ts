@@ -7,6 +7,18 @@ export interface VoiceParticipant {
   cameraOn: boolean;
   speaking: boolean;
   screenShareCount: number; // 0 = none, 1+ = active screen shares
+  avatarUrl?: string | null; // Optional — populated in channel_update for sidebar display
+}
+
+// Enriched payload broadcast on join/leave to all server members for sidebar display
+export interface VoiceChannelUpdatePayload {
+  channelId: string;
+  participantCount: number;
+  participants: Array<{
+    userId: string;
+    displayName: string;
+    avatarUrl: string | null;
+  }>;
 }
 
 // Socket.IO event payloads
