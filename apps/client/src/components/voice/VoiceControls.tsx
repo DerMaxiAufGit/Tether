@@ -13,7 +13,7 @@
  * Clicking it opens ConnectionStats popup.
  */
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useVoice } from "@/contexts/VoiceContext";
 import { ConnectionStats } from "./ConnectionStats";
 
@@ -138,28 +138,60 @@ export function VoiceControls() {
   const [showStats, setShowStats] = useState(false);
   const [quality, setQuality] = useState<Quality>("unknown");
 
-  // We need a RTCPeerConnection to poll stats. The VoiceContext doesn't expose
-  // peerConnections directly (they are in peersRef inside useVoiceChannel).
-  // We use a workaround: track quality via getStats on any available connection
-  // using the pc exposed through getStats-compatible window.__tether_pc__ if set,
-  // or just poll via custom event. Since peerConnections are internal to the hook,
-  // we implement quality detection using RTCPeerConnection.getStats via a ref
-  // pattern — expose via a custom DOM event from useVoiceChannel to VoiceControls.
-  //
-  // Simpler approach: poll quality via a lightweight impl that uses navigator.connection
-  // for a basic signal, and rely on the ConnectionStats popup for detailed data.
-  // The quality dot uses the voice.connectionState + a basic RTT estimate.
-
-  // For now, estimate quality from connectionState:
-  // When connected, start as "green" and let ConnectionStats popup show full data
+  // Poll RTCPeerConnection.getStats() every 3 seconds to derive quality from RTT
   useEffect(() => {
     if (voice.connectionState !== "connected") {
       setQuality("unknown");
       return;
     }
-    // Default to green when connected — ConnectionStats popup shows real data
-    setQuality("green");
-  }, [voice.connectionState]);
+
+    async function pollQuality() {
+      const pc = voice.getFirstPeerConnection();
+      if (!pc || pc.connectionState === "closed") {
+        setQuality("green");
+        return;
+      }
+      try {
+        const report = await pc.getStats();
+        let rtt: number | null = null;
+        let loss: number | null = null;
+
+        report.forEach((entry) => {
+          if (
+            entry.type === "candidate-pair" &&
+            (entry as RTCIceCandidatePairStats).state === "succeeded"
+          ) {
+            const pair = entry as RTCIceCandidatePairStats;
+            if (pair.currentRoundTripTime !== undefined) {
+              rtt = pair.currentRoundTripTime * 1000;
+            }
+          }
+          if (entry.type === "inbound-rtp" && (entry as RTCInboundRtpStreamStats).kind === "audio") {
+            const inbound = entry as RTCInboundRtpStreamStats;
+            if (inbound.packetsReceived && inbound.packetsLost !== undefined && inbound.packetsReceived > 0) {
+              loss = (inbound.packetsLost / (inbound.packetsReceived + inbound.packetsLost)) * 100;
+            }
+          }
+        });
+
+        if (rtt === null) {
+          setQuality("unknown");
+        } else if (rtt < 150 && (loss === null || loss < 2)) {
+          setQuality("green");
+        } else if (rtt < 300 && (loss === null || loss < 8)) {
+          setQuality("yellow");
+        } else {
+          setQuality("red");
+        }
+      } catch {
+        setQuality("unknown");
+      }
+    }
+
+    void pollQuality();
+    const interval = setInterval(() => void pollQuality(), 3000);
+    return () => clearInterval(interval);
+  }, [voice.connectionState, voice.getFirstPeerConnection]);
 
   // Don't render if idle
   if (voice.connectionState === "idle") return null;
@@ -222,7 +254,7 @@ export function VoiceControls() {
         {/* ConnectionStats popup */}
         {showStats && (
           <ConnectionStats
-            peerConnection={null} // Stats popup shows contextual info; detailed polling in ConnectionStats
+            peerConnection={voice.getFirstPeerConnection()}
             onClose={() => setShowStats(false)}
           />
         )}
