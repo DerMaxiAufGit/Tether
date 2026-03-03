@@ -118,16 +118,16 @@ Plans:
   4. User can share their screen via browser prompt and all voice channel participants see the screen share stream
   5. Voice activity indicator lights up in real-time next to a participant when they are speaking
   6. ICE candidate exchange does not begin until the call is explicitly accepted (no IP leak before acceptance)
-**Plans**: TBD
+**Plans**: 7 plans
 
 Plans:
-- [ ] 05-01: Coturn credential API (GET /api/voice/turn-credentials, ephemeral HMAC-SHA-1 with server shared secret, time-limited)
-- [ ] 05-02: WebRTC signaling (Socket.IO voice:join, voice:offer, voice:answer, voice:ice events; ICE candidate gating state machine; SDP signing with Ed25519 identity key)
-- [ ] 05-03: RTCPeerConnection mesh (N-1 connections per client, getUserMedia audio track, peer add/remove on join/leave, DTLS-SRTP via browser default)
-- [ ] 05-04: Mute/deafen controls (client-side MediaStreamTrack.enabled, socket broadcast of mute state, UI badges)
-- [ ] 05-05: Video and screen share (addTrack for camera, getDisplayMedia for screen, track replacement on toggle, bandwidth limit at 360p/200kbps in groups of 4+)
-- [ ] 05-06: Voice activity detection (Web Audio API AnalyserNode, speaking threshold, per-participant speaking indicator in UI)
-- [ ] 05-07: Voice channel UI (participant grid/list, audio level visualization, mute/deafen/camera/screenshare controls, join/leave flow, connection diagnostics on failure)
+- [ ] 05-01-PLAN.md — Shared voice types + Coturn TURN credential REST endpoint (HMAC-SHA1 ephemeral credentials)
+- [ ] 05-02-PLAN.md — Socket.IO voice signaling handlers + Redis participant tracking (join, leave, offer, answer, ICE relay, mute/deafen/camera/speaking broadcast)
+- [ ] 05-03-PLAN.md — WebRTC P2P mesh hook + VoiceContext provider (RTCPeerConnection mesh, perfect negotiation, ICE gating, relay-only transport)
+- [ ] 05-04-PLAN.md — Mute/deafen controls + voice activity detection (MediaStreamTrack.enabled, AnalyserNode RMS VAD with hysteresis)
+- [ ] 05-05-PLAN.md — Camera toggle + screen share (replaceTrack for camera, addTrack for screen share, multi-share support, 360p/200kbps bandwidth limit)
+- [ ] 05-06-PLAN.md — Voice channel UI (participant grid, speaking indicators, voice controls in UserInfoBar, floating PiP, connection stats, channel join/leave wiring)
+- [ ] 05-07-PLAN.md — Human verification checkpoint (9 test scenarios covering all voice/video functionality)
 
 ### Phase 6: Files and Media
 **Goal**: Users can upload files and images that are encrypted client-side before leaving the browser, stored in MinIO, and displayed inline in chat — the server never sees file bytes.
@@ -174,6 +174,6 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 | 2. Servers and Channels | 0/8 | Planned | - |
 | 3. E2EE Text Messaging | 8/8 | Complete | 2026-03-01 |
 | 4. Presence and Messaging UX | 5/5 | Complete | 2026-03-01 |
-| 5. Voice and Video | 0/7 | Not started | - |
+| 5. Voice and Video | 0/7 | Planned | - |
 | 6. Files and Media | 0/4 | Not started | - |
 | 7. Permissions | 0/4 | Not started | - |
