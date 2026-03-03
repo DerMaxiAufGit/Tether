@@ -156,6 +156,19 @@ export function VoiceControls() {
         if (!cancelled) setQuality("green");
         return;
       }
+
+      // ICE failed — show red (connection problem, not "unknown")
+      if (pc.iceConnectionState === "failed") {
+        if (!cancelled) setQuality("red");
+        return;
+      }
+
+      // ICE not yet connected — skip getStats (no useful data yet)
+      if (pc.iceConnectionState !== "connected" && pc.iceConnectionState !== "completed") {
+        if (!cancelled) setQuality("unknown");
+        return;
+      }
+
       try {
         const report = await pc.getStats();
         if (cancelled) return;
@@ -164,13 +177,16 @@ export function VoiceControls() {
         let loss: number | null = null;
 
         report.forEach((entry) => {
-          if (
-            entry.type === "candidate-pair" &&
-            (entry as RTCIceCandidatePairStats).state === "succeeded"
-          ) {
+          // Match the active candidate pair: state "succeeded" OR nominated
+          if (entry.type === "candidate-pair") {
             const pair = entry as RTCIceCandidatePairStats;
-            if (pair.currentRoundTripTime !== undefined) {
-              rtt = pair.currentRoundTripTime * 1000;
+            if (
+              pair.state === "succeeded" ||
+              (pair as unknown as Record<string, unknown>).nominated === true
+            ) {
+              if (pair.currentRoundTripTime !== undefined) {
+                rtt = pair.currentRoundTripTime * 1000;
+              }
             }
           }
           if (entry.type === "inbound-rtp" && (entry as RTCInboundRtpStreamStats).kind === "audio") {

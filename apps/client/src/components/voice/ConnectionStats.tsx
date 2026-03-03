@@ -22,6 +22,7 @@ interface StatsData {
   packetLoss: number | null;
   codec: string | null;
   connectionType: "P2P" | "TURN relay" | null;
+  iceState: string | null;
 }
 
 // ============================================================
@@ -43,6 +44,7 @@ export function ConnectionStats({ peerConnection, onClose }: ConnectionStatsProp
     packetLoss: null,
     codec: null,
     connectionType: null,
+    iceState: null,
   });
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -53,30 +55,35 @@ export function ConnectionStats({ peerConnection, onClose }: ConnectionStatsProp
     async function fetchStats() {
       if (!peerConnection || peerConnection.connectionState === "closed") return;
 
+      const iceState = peerConnection.iceConnectionState;
+
+      // ICE not connected yet — report state but skip getStats (no useful data)
+      if (iceState !== "connected" && iceState !== "completed") {
+        setStats((prev) => ({ ...prev, iceState }));
+        return;
+      }
+
       try {
         const report = await peerConnection.getStats();
         let rtt: number | null = null;
         let packetLoss: number | null = null;
         let codec: string | null = null;
         let connectionType: "P2P" | "TURN relay" | null = null;
+        let activePairLocalCandidateId: string | null = null;
 
         report.forEach((entry) => {
-          // candidate-pair: RTT and connection type
-          if (
-            entry.type === "candidate-pair" &&
-            (entry as RTCIceCandidatePairStats).state === "succeeded"
-          ) {
+          // Match the active candidate pair: state "succeeded" OR nominated
+          if (entry.type === "candidate-pair") {
             const pair = entry as RTCIceCandidatePairStats;
-            if (pair.currentRoundTripTime !== undefined) {
-              rtt = Math.round(pair.currentRoundTripTime * 1000);
+            if (
+              pair.state === "succeeded" ||
+              (pair as unknown as Record<string, unknown>).nominated === true
+            ) {
+              if (pair.currentRoundTripTime !== undefined) {
+                rtt = Math.round(pair.currentRoundTripTime * 1000);
+              }
+              activePairLocalCandidateId = pair.localCandidateId ?? null;
             }
-          }
-
-          // remote-candidate: P2P vs TURN
-          if (entry.type === "remote-candidate") {
-            const candidate = entry as RTCIceCandidateStats;
-            connectionType =
-              candidate.candidateType === "relay" ? "TURN relay" : "P2P";
           }
 
           // inbound-rtp (audio): packet loss + codec
@@ -100,7 +107,15 @@ export function ConnectionStats({ peerConnection, onClose }: ConnectionStatsProp
           }
         });
 
-        setStats({ rtt, packetLoss, codec, connectionType });
+        // Determine P2P vs TURN from the active pair's local candidate
+        if (activePairLocalCandidateId) {
+          const localCandidate = report.get(activePairLocalCandidateId) as RTCIceCandidateStats | undefined;
+          if (localCandidate) {
+            connectionType = localCandidate.candidateType === "relay" ? "TURN relay" : "P2P";
+          }
+        }
+
+        setStats({ rtt, packetLoss, codec, connectionType, iceState });
       } catch (err) {
         // PeerConnection may have closed — ignore
       }
@@ -141,13 +156,18 @@ export function ConnectionStats({ peerConnection, onClose }: ConnectionStatsProp
         Connection Stats
       </p>
       {!peerConnection ? (
-        <p className="text-zinc-500 text-xs">Waiting for another participant…</p>
+        <p className="text-zinc-500 text-xs">No P2P connection running</p>
       ) : (
         <div className="space-y-1.5">
           <StatRow label="Ping / RTT" value={formatRtt(stats.rtt)} />
           <StatRow label="Packet Loss" value={formatLoss(stats.packetLoss)} />
           <StatRow label="Audio Codec" value={stats.codec ?? "—"} />
           <StatRow label="Connection" value={stats.connectionType ?? "—"} />
+          {stats.iceState && stats.iceState !== "connected" && stats.iceState !== "completed" && (
+            <div className="mt-1 pt-1 border-t border-zinc-700/40">
+              <StatRow label="ICE State" value={stats.iceState} />
+            </div>
+          )}
         </div>
       )}
     </div>

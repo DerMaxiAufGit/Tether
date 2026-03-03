@@ -370,6 +370,7 @@ export function useVoiceChannel() {
       }));
 
       for (const participant of data.participants) {
+        if (participant.userId === user?.id) continue; // skip self
         createPeerConnection(participant.userId);
         // onnegotiationneeded fires automatically after addTrack → sends offer
       }
