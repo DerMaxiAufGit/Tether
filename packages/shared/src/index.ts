@@ -7,4 +7,5 @@ export * from "./types/message.js";
 export * from "./types/dm.js";
 export * from "./types/presence.js";
 export * from "./types/reaction.js";
+export * from "./types/voice.js";
 export const TETHER_VERSION = "0.1.0";
