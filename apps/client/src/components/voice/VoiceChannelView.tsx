@@ -129,6 +129,7 @@ export function VoiceChannelView({ channelId, serverId }: VoiceChannelViewProps)
       <ParticipantGrid
         participants={voice.participants}
         localStream={voice.localStream}
+        localCameraStream={voice.localCameraStream}
         remoteStreams={voice.remoteStreams}
         remoteScreenShares={voice.remoteScreenShares}
         localScreenShares={voice.screenShares}

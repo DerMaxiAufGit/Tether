@@ -43,6 +43,7 @@ function RemoteAudio({ stream }: { stream: MediaStream }) {
 export interface ParticipantGridProps {
   participants: VoiceParticipant[];
   localStream: MediaStream | null;
+  localCameraStream: MediaStream | null;
   remoteStreams: Map<string, MediaStream>;
   remoteScreenShares: Map<string, { userId: string; stream: MediaStream }>;
   localScreenShares: Map<string, MediaStream>;
@@ -56,6 +57,7 @@ export interface ParticipantGridProps {
 export function ParticipantGrid({
   participants,
   localStream,
+  localCameraStream,
   remoteStreams,
   remoteScreenShares,
   localScreenShares,
@@ -103,7 +105,7 @@ export function ParticipantGrid({
           );
         })}
 
-        {/* Self participant tile */}
+        {/* Self participant tile — use localCameraStream when camera is on */}
         {(() => {
           const self = participants.find((p) => p.userId === selfUserId);
           if (!self) return null;
@@ -111,7 +113,7 @@ export function ParticipantGrid({
             <ParticipantTile
               key={`self-${selfUserId}`}
               participant={self}
-              stream={localStream}
+              stream={localCameraStream ?? localStream}
               isSelf
             />
           );

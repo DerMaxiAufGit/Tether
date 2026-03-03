@@ -50,6 +50,7 @@ interface VoiceState {
   connectionState: "idle" | "requesting-mic" | "joining" | "connected" | "failed";
   participants: VoiceParticipant[];
   localStream: MediaStream | null;
+  localCameraStream: MediaStream | null;
   remoteStreams: Map<string, MediaStream>;
   muted: boolean;
   deafened: boolean;
@@ -110,6 +111,7 @@ export function useVoiceChannel() {
     connectionState: "idle",
     participants: [],
     localStream: null,
+    localCameraStream: null,
     remoteStreams: new Map(),
     muted: false,
     deafened: false,
@@ -613,6 +615,7 @@ export function useVoiceChannel() {
       connectionState: "idle",
       participants: [],
       localStream: null,
+      localCameraStream: null,
       remoteStreams: new Map(),
       muted: false,
       deafened: false,
@@ -747,7 +750,10 @@ export function useVoiceChannel() {
         }
       }
 
-      setState((prev) => ({ ...prev, cameraOn: true }));
+      // Expose a dedicated camera stream for the self-view tile
+      // (localStream is audio-only; new MediaStream triggers re-render in ParticipantTile)
+      const cameraStream = new MediaStream([videoTrack]);
+      setState((prev) => ({ ...prev, cameraOn: true, localCameraStream: cameraStream }));
       socket.emit("voice:camera", { channelId: state.channelId, cameraOn: true });
     } else {
       // Camera OFF: replaceTrack(null) — sends nothing, no renegotiation
@@ -759,7 +765,7 @@ export function useVoiceChannel() {
       cameraTrackRef.current?.stop();
       cameraTrackRef.current = null;
 
-      setState((prev) => ({ ...prev, cameraOn: false }));
+      setState((prev) => ({ ...prev, cameraOn: false, localCameraStream: null }));
       socket.emit("voice:camera", { channelId: state.channelId, cameraOn: false });
     }
   }, [socket, state.cameraOn, state.channelId, state.participants.length]);
@@ -925,6 +931,7 @@ export function useVoiceChannel() {
     connectionState: state.connectionState,
     participants: state.participants,
     localStream: state.localStream,
+    localCameraStream: state.localCameraStream,
     remoteStreams: state.remoteStreams,
     screenShares: state.screenShares,
     remoteScreenShares: state.remoteScreenShares,
