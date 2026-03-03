@@ -16,10 +16,10 @@ import RecoveryKeyPage from "@/pages/auth/RecoveryKeyPage";
 import WelcomePage from "@/pages/WelcomePage";
 import AppShell from "@/pages/AppShell";
 import ServerView from "@/pages/server/ServerView";
-import ChannelView from "@/pages/server/ChannelView";
 import ServerSettings from "@/pages/server/settings/ServerSettings";
 import DMLayout from "@/pages/dm/DMLayout";
 import DMView from "@/pages/dm/DMView";
+import ChannelOrVoiceView from "@/pages/server/ChannelOrVoiceView";
 
 // ============================================================
 // Route guards
@@ -152,8 +152,8 @@ function AppRoutes() {
               </div>
             }
           />
-          {/* Channel selected — chat view (Phase 3) */}
-          <Route path="channels/:channelId" element={<ChannelView />} />
+          {/* Channel selected — text chat (Phase 3) or voice channel (Phase 5) */}
+          <Route path="channels/:channelId" element={<ChannelOrVoiceView />} />
         </Route>
         {/* Server settings — full-page, inside AppShell so icon strip stays visible */}
         <Route path="servers/:serverId/settings" element={<ServerSettings />} />

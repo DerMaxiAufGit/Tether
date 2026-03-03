@@ -8,11 +8,12 @@
  * For voice channels: navigates to the same path (Phase 5 will add RTC join)
  */
 
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import type { ChannelResponse } from "@tether/shared";
 import { useChannelUnread } from "@/hooks/useUnread";
+import { useVoice } from "@/contexts/VoiceContext";
 
 // ============================================================
 // Icons
@@ -58,6 +59,8 @@ export default function ChannelItem({ channel, isSelected }: ChannelItemProps) {
   } = useSortable({ id: channel.id });
 
   const { unreadCount, hasMention } = useChannelUnread(channel.serverId, channel.id);
+  const voice = useVoice();
+  const navigate = useNavigate();
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -106,6 +109,13 @@ export default function ChannelItem({ channel, isSelected }: ChannelItemProps) {
           // Don't navigate if dragging
           if (isDragging) {
             e.preventDefault();
+            return;
+          }
+          // Voice channels: trigger join via useVoice AND navigate
+          if (channel.type === "voice" && channel.serverId) {
+            e.preventDefault();
+            voice.join(channel.id, channel.serverId);
+            navigate(href);
           }
         }}
         // Prevent link from intercepting drag pointer events
@@ -114,6 +124,13 @@ export default function ChannelItem({ channel, isSelected }: ChannelItemProps) {
       >
         {channel.name}
       </Link>
+
+      {/* Active voice indicator: show participant count for voice channels */}
+      {channel.type === "voice" && voice.channelId === channel.id && (
+        <span className="ml-auto shrink-0 text-[10px] font-medium text-emerald-400 px-1">
+          {voice.participants.length}
+        </span>
+      )}
 
       {/* Unread badge — shown when there are unread messages */}
       {unreadCount > 0 && (

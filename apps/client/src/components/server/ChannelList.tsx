@@ -37,9 +37,11 @@ import { useChannels, useReorderChannels } from "@/hooks/useChannels";
 import { useServers } from "@/hooks/useServers";
 import { useAuth } from "@/hooks/useAuth";
 import { useSocket } from "@/hooks/useSocket";
+import { useVoice } from "@/contexts/VoiceContext";
 import { api } from "@/lib/api";
 import ChannelItem from "./ChannelItem";
 import InviteModal from "./InviteModal";
+import { VoiceControls } from "@/components/voice/VoiceControls";
 import type { ChannelResponse } from "@tether/shared";
 
 // ============================================================
@@ -149,34 +151,50 @@ function ChannelGroup({
 function UserInfoBar() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const voice = useVoice();
 
   if (!user) return null;
 
   const initial = user.displayName[0]?.toUpperCase() ?? "?";
+  const inCall = voice.connectionState !== "idle";
 
   return (
-    <div className="flex items-center gap-2 px-2 py-2 bg-zinc-900/80 border-t border-zinc-700/50 shrink-0">
-      {/* Avatar */}
-      <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center shrink-0">
-        <span className="text-white text-xs font-bold">{initial}</span>
+    <div className="flex flex-col bg-zinc-900/80 border-t border-zinc-700/50 shrink-0">
+      {/* Voice status row — shown when in a call */}
+      {inCall && (
+        <div className="flex items-center gap-2 px-2 pt-2 pb-1">
+          <div className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
+          <span className="text-emerald-400 text-xs font-medium flex-1 truncate">Voice Connected</span>
+        </div>
+      )}
+
+      {/* Main user row */}
+      <div className="flex items-center gap-2 px-2 py-2">
+        {/* Avatar */}
+        <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center shrink-0">
+          <span className="text-white text-xs font-bold">{initial}</span>
+        </div>
+
+        {/* Name */}
+        <span className="flex-1 text-zinc-300 text-sm font-medium truncate min-w-0">
+          {user.displayName}
+        </span>
+
+        {/* Voice controls — shown when in a call */}
+        {inCall && <VoiceControls />}
+
+        {/* Settings gear */}
+        <button
+          onClick={() => navigate("/change-password")}
+          className="text-zinc-400 hover:text-zinc-200 transition-colors p-1 rounded cursor-pointer shrink-0"
+          aria-label="User settings"
+          title="Settings"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.488.488 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" />
+          </svg>
+        </button>
       </div>
-
-      {/* Name */}
-      <span className="flex-1 text-zinc-300 text-sm font-medium truncate min-w-0">
-        {user.displayName}
-      </span>
-
-      {/* Settings gear */}
-      <button
-        onClick={() => navigate("/change-password")}
-        className="text-zinc-400 hover:text-zinc-200 transition-colors p-1 rounded cursor-pointer"
-        aria-label="User settings"
-        title="Settings"
-      >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.488.488 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" />
-        </svg>
-      </button>
     </div>
   );
 }

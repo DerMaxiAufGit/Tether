@@ -15,6 +15,7 @@ import { SocketProvider } from "@/hooks/useSocket";
 import { useIdleDetection } from "@/hooks/useIdleDetection";
 import { VoiceProvider } from "@/contexts/VoiceContext";
 import ServerList from "@/components/server/ServerList";
+import { VoicePiP } from "@/components/voice/VoicePiP";
 
 // ============================================================
 // IdleDetector — null-rendering component, must live inside
@@ -45,6 +46,8 @@ export default function AppShell() {
             <Outlet />
           </div>
         </div>
+        {/* VoicePiP — persists across route changes, rendered outside Outlet */}
+        <VoicePiP />
       </VoiceProvider>
     </SocketProvider>
   );
