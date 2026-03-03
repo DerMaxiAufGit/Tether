@@ -941,6 +941,15 @@ export function useVoiceChannel() {
   }, [cleanupAll]);
 
   // ============================================================
+  // getFirstPeerConnection() — stable getter for the first active RTCPeerConnection
+  // ============================================================
+
+  const getFirstPeerConnection = (): RTCPeerConnection | null => {
+    const entry = peersRef.current.entries().next();
+    return entry.done ? null : entry.value[1];
+  };
+
+  // ============================================================
   // Return value
   // ============================================================
 
@@ -970,5 +979,6 @@ export function useVoiceChannel() {
     toggleCamera,
     startScreenShare,
     stopScreenShare,
+    getFirstPeerConnection,
   };
 }
