@@ -153,7 +153,7 @@ export default async function inviteJoinRoute(fastify: FastifyInstance): Promise
       const { server, serverId } = result;
 
       // Broadcast to the server room that a new member has joined
-      fastify.io.to(`server:${serverId}`).emit("member:joined", { serverId, userId });
+      fastify.io?.to(`server:${serverId}`).emit("member:joined", { serverId, userId });
 
       return reply.code(200).send({
         server: {

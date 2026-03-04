@@ -19,17 +19,20 @@
  *   - Emits channel:subscribe on mount to join the channel room
  */
 
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { useParams, useOutletContext } from "react-router-dom";
 import { useChannels, useServerMembers } from "@/hooks/useChannels";
 import { useSendMessage } from "@/hooks/useMessages";
 import { useSocket } from "@/hooks/useSocket";
 import { useAuth } from "@/hooks/useAuth";
 import { useTyping } from "@/hooks/useTyping";
+import { useFileUpload } from "@/hooks/useFileUpload";
+import type { UploadedAttachment } from "@/lib/file-upload";
 import MessageList from "@/components/chat/MessageList";
 import MessageInput from "@/components/chat/MessageInput";
 import TypingIndicator from "@/components/chat/TypingIndicator";
 import CryptoUnlockPrompt from "@/components/chat/CryptoUnlockPrompt";
+import HistoryGrantPrompt from "@/components/chat/HistoryGrantPrompt";
 
 // ============================================================
 // Outlet context shape (passed by ServerView)
@@ -54,6 +57,19 @@ export default function ChannelView() {
   const sendMessage = useSendMessage(channelId ?? "");
   const { typingUserIds, emitTyping, stopTyping } = useTyping(channelId);
 
+  // Build recipients list for file encryption
+  const recipients = useMemo(() => {
+    if (!members) return [];
+    return members
+      .filter((m) => m.user.x25519PublicKey)
+      .map((m) => ({
+        userId: m.userId,
+        x25519PublicKey: m.user.x25519PublicKey,
+      }));
+  }, [members]);
+
+  const fileUpload = useFileUpload({ channelId: channelId ?? "", recipients });
+
   // ============================================================
   // Subscribe to channel room on mount
   // ============================================================
@@ -68,24 +84,26 @@ export default function ChannelView() {
   // ============================================================
 
   const handleSend = useCallback(
-    (plaintext: string) => {
+    async (plaintext: string) => {
       if (!channelId || !members) return;
-
-      // Build recipients: all server members with their X25519 public keys
-      const recipients = members
-        .filter((m) => m.user.x25519PublicKey)
-        .map((m) => ({
-          userId: m.userId,
-          x25519PublicKey: m.user.x25519PublicKey,
-        }));
 
       if (recipients.length === 0) return;
 
       // Clear typing indicator immediately on send
       stopTyping();
-      sendMessage.mutate({ plaintext, recipients });
+
+      // If a file is attached, upload it first
+      let uploadedAttachments: UploadedAttachment[] | undefined;
+      if (fileUpload.file) {
+        const uploaded = await fileUpload.startUpload();
+        if (!uploaded) return; // upload failed or was cancelled
+        uploadedAttachments = [uploaded];
+      }
+
+      sendMessage.mutate({ plaintext, recipients, attachments: uploadedAttachments });
+      fileUpload.clearFile();
     },
-    [channelId, members, sendMessage, stopTyping],
+    [channelId, members, recipients, sendMessage, stopTyping, fileUpload],
   );
 
   // ============================================================
@@ -118,6 +136,9 @@ export default function ChannelView() {
         <CryptoUnlockPrompt onUnlocked={() => setKeysRestored(true)} />
       )}
 
+      {/* Grant prompt — shown when another user requests message history */}
+      <HistoryGrantPrompt serverId={serverId} />
+
       {/* Message list — flex-1, scrollable */}
       <MessageList channelId={channelId} channelName={channelName} serverId={serverId} members={members} />
 
@@ -133,6 +154,11 @@ export default function ChannelView() {
           disabled={!keysRestored}
           placeholder={`Message #${channelName}`}
           onTyping={emitTyping}
+          onFileSelect={fileUpload.selectFile}
+          attachedFile={fileUpload.file ? { name: fileUpload.file.name, size: fileUpload.file.size } : null}
+          uploadProgress={fileUpload.progress}
+          uploadError={fileUpload.error}
+          onFileCancel={fileUpload.clearFile}
         />
       </div>
     </div>

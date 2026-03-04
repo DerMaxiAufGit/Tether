@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { db } from "../../db/client.js";
-import { channels, serverMembers, dmParticipants, messages, messageRecipientKeys, users } from "../../db/schema.js";
+import { channels, serverMembers, dmParticipants, messages, messageRecipientKeys, users, attachments, attachmentRecipientKeys } from "../../db/schema.js";
 import { eq, and, lt, desc } from "drizzle-orm";
 
 /**
@@ -139,27 +139,74 @@ export default async function listMessagesRoute(fastify: FastifyInstance): Promi
         .orderBy(desc(messages.createdAt))
         .limit(limit);
 
-      // Shape the response: encode bytea fields as base64
-      const messageList = rows.map((row) => ({
-        id: row.id,
-        channelId: row.channelId,
-        senderId: row.senderId,
-        senderDisplayName: row.senderDisplayName,
-        senderAvatarUrl: row.senderAvatarUrl,
-        encryptedContent: row.encryptedContent?.toString("base64") ?? null,
-        contentIv: row.contentIv?.toString("base64") ?? null,
-        contentAlgorithm: row.contentAlgorithm,
-        epoch: row.epoch,
-        createdAt: row.createdAt,
-        editedAt: row.editedAt ?? null,
-        recipientKey:
-          row.recipientEncryptedMessageKey && row.recipientEphemeralPublicKey
-            ? {
-                encryptedMessageKey: row.recipientEncryptedMessageKey.toString("base64"),
-                ephemeralPublicKey: row.recipientEphemeralPublicKey.toString("base64"),
+      // Shape the response: encode bytea fields as base64, include attachments
+      const messageList = await Promise.all(
+        rows.map(async (row) => {
+          // Query attachments for this message
+          const messageAttachments = await db
+            .select()
+            .from(attachments)
+            .where(eq(attachments.messageId, row.id));
+
+          const attachmentData = await Promise.all(
+            messageAttachments.map(async (att) => {
+              const [userAttKey] = await db
+                .select({
+                  encryptedFileKey: attachmentRecipientKeys.encryptedFileKey,
+                  ephemeralPublicKey: attachmentRecipientKeys.ephemeralPublicKey,
+                })
+                .from(attachmentRecipientKeys)
+                .where(
+                  and(
+                    eq(attachmentRecipientKeys.attachmentId, att.id),
+                    eq(attachmentRecipientKeys.recipientUserId, userId),
+                  ),
+                )
+                .limit(1);
+
+              // If no recipientKey, return minimal stub to avoid metadata leakage
+              if (!userAttKey) {
+                return { id: att.id, recipientKey: null };
               }
-            : null,
-      }));
+
+              return {
+                id: att.id,
+                fileName: att.fileName,
+                mimeType: att.mimeType,
+                fileSize: att.fileSize,
+                isImage: !!att.isImage,
+                fileIv: att.fileIv,
+                recipientKey: {
+                  encryptedFileKey: userAttKey.encryptedFileKey?.toString("base64") ?? "",
+                  ephemeralPublicKey: userAttKey.ephemeralPublicKey?.toString("base64") ?? "",
+                },
+              };
+            }),
+          );
+
+          return {
+            id: row.id,
+            channelId: row.channelId,
+            senderId: row.senderId,
+            senderDisplayName: row.senderDisplayName,
+            senderAvatarUrl: row.senderAvatarUrl,
+            encryptedContent: row.encryptedContent?.toString("base64") ?? null,
+            contentIv: row.contentIv?.toString("base64") ?? null,
+            contentAlgorithm: row.contentAlgorithm,
+            epoch: row.epoch,
+            createdAt: row.createdAt,
+            editedAt: row.editedAt ?? null,
+            recipientKey:
+              row.recipientEncryptedMessageKey && row.recipientEphemeralPublicKey
+                ? {
+                    encryptedMessageKey: row.recipientEncryptedMessageKey.toString("base64"),
+                    ephemeralPublicKey: row.recipientEphemeralPublicKey.toString("base64"),
+                  }
+                : null,
+            attachments: attachmentData,
+          };
+        }),
+      );
 
       return reply.code(200).send({ messages: messageList });
     },

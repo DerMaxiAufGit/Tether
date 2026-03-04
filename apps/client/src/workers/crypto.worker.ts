@@ -21,6 +21,7 @@ import {
   AUTH_HKDF_INFO,
   ENCRYPTION_HKDF_INFO,
   MESSAGE_KEY_WRAP_INFO,
+  FILE_KEY_WRAP_INFO,
 } from "@tether/shared";
 import type {
   CryptoWorkerRequest,
@@ -33,6 +34,9 @@ import type {
   ClearKeysResultData,
   EncryptReactionResultData,
   DecryptReactionResultData,
+  EncryptFileResultData,
+  DecryptFileResultData,
+  ForwardKeysResultData,
 } from "@tether/shared";
 
 // ============================================================
@@ -876,6 +880,308 @@ self.onmessage = async (event: MessageEvent<CryptoWorkerRequest>) => {
         _cachedKeys = null;
         await deleteKeys();
         postResult({ cleared: true } satisfies ClearKeysResultData);
+        break;
+      }
+
+      // ----------------------------------------------------------
+      // ENCRYPT_FILE: Encrypt file bytes for multiple recipients
+      // Same ECDH + HKDF + AES-256-GCM wrap pattern as ENCRYPT_MESSAGE
+      // but operates on ArrayBuffer instead of string
+      // ----------------------------------------------------------
+      case "ENCRYPT_FILE": {
+        if (!_cachedKeys) throw new Error("Keys not unlocked — call LOGIN_DECRYPT first");
+
+        const { fileBytes, recipients: fileRecipients } = payload;
+
+        // 1. Generate fresh AES-256-GCM file key (extractable for wrapping)
+        const fileKey = await crypto.subtle.generateKey(
+          { name: "AES-GCM", length: 256 },
+          true,
+          ["encrypt", "decrypt"],
+        );
+
+        // 2. Encrypt file bytes
+        const fileIv = crypto.getRandomValues(new Uint8Array(12));
+        const encryptedFile = await crypto.subtle.encrypt(
+          { name: "AES-GCM", iv: fileIv },
+          fileKey,
+          fileBytes,
+        );
+
+        // 3. Wrap file key per-recipient (same pattern as ENCRYPT_MESSAGE)
+        const wrappedFileKeys = [];
+        for (const recipient of fileRecipients) {
+          const ephemeralKp = await crypto.subtle.generateKey(
+            { name: "X25519" },
+            false,
+            ["deriveKey", "deriveBits"],
+          );
+
+          const recipientPub = await crypto.subtle.importKey(
+            "raw",
+            base64ToUint8(recipient.x25519PublicKey),
+            { name: "X25519" },
+            false,
+            [],
+          );
+
+          const sharedBits = await crypto.subtle.deriveBits(
+            { name: "X25519", public: recipientPub },
+            ephemeralKp.privateKey,
+            256,
+          );
+
+          const hkdfKey = await crypto.subtle.importKey("raw", sharedBits, "HKDF", false, ["deriveKey"]);
+          const wrapKey = await crypto.subtle.deriveKey(
+            { name: "HKDF", hash: "SHA-256", salt: new Uint8Array(32), info: new TextEncoder().encode(FILE_KEY_WRAP_INFO) },
+            hkdfKey,
+            { name: "AES-GCM", length: 256 },
+            false,
+            ["wrapKey"],
+          );
+
+          const wrapIv = crypto.getRandomValues(new Uint8Array(12));
+          const wrappedFileKey = new Uint8Array(
+            await crypto.subtle.wrapKey("raw", fileKey, wrapKey, { name: "AES-GCM", iv: wrapIv }),
+          );
+
+          const combined = new Uint8Array(12 + wrappedFileKey.length);
+          combined.set(wrapIv, 0);
+          combined.set(wrappedFileKey, 12);
+
+          const ephPubBytes = new Uint8Array(await crypto.subtle.exportKey("raw", ephemeralKp.publicKey));
+
+          wrappedFileKeys.push({
+            recipientUserId: recipient.userId,
+            encryptedFileKey: uint8ToBase64(combined),
+            ephemeralPublicKey: uint8ToBase64(ephPubBytes),
+          });
+        }
+
+        const encryptFileResult: EncryptFileResultData = {
+          encryptedFile: encryptedFile,
+          fileIv: uint8ToBase64(fileIv),
+          recipients: wrappedFileKeys,
+        };
+
+        // Transfer the ArrayBuffer to avoid copying
+        self.postMessage(
+          { type: "RESULT", id, success: true, data: encryptFileResult },
+          [encryptFileResult.encryptedFile],
+        );
+        break;
+      }
+
+      // ----------------------------------------------------------
+      // DECRYPT_FILE: Decrypt file ciphertext using cached private key
+      // Reverses ECDH + HKDF + AES-256-GCM unwrap to recover file bytes
+      // ----------------------------------------------------------
+      case "DECRYPT_FILE": {
+        if (!_cachedKeys) throw new Error("Keys not unlocked — call LOGIN_DECRYPT first");
+
+        const { encryptedFile: encFile, fileIv: fIv, encryptedFileKey: encFKey, ephemeralPublicKey: ephPub } = payload;
+
+        const encFileKeyBytes = base64ToUint8(encFKey);
+        const fileWrapIv = encFileKeyBytes.slice(0, 12);
+        const wrappedFileKeyBytes = encFileKeyBytes.slice(12);
+
+        const ephemeralPub = await crypto.subtle.importKey(
+          "raw",
+          base64ToUint8(ephPub),
+          { name: "X25519" },
+          false,
+          [],
+        );
+
+        const fileSharedBits = await crypto.subtle.deriveBits(
+          { name: "X25519", public: ephemeralPub },
+          _cachedKeys.x25519PrivateKey,
+          256,
+        );
+
+        const fileHkdfKey = await crypto.subtle.importKey("raw", fileSharedBits, "HKDF", false, ["deriveKey"]);
+        const unwrapKey = await crypto.subtle.deriveKey(
+          { name: "HKDF", hash: "SHA-256", salt: new Uint8Array(32), info: new TextEncoder().encode(FILE_KEY_WRAP_INFO) },
+          fileHkdfKey,
+          { name: "AES-GCM", length: 256 },
+          false,
+          ["unwrapKey"],
+        );
+
+        const recoveredFileKey = await crypto.subtle.unwrapKey(
+          "raw",
+          wrappedFileKeyBytes,
+          unwrapKey,
+          { name: "AES-GCM", iv: fileWrapIv },
+          { name: "AES-GCM", length: 256 },
+          false,
+          ["decrypt"],
+        );
+
+        const decryptedFile = await crypto.subtle.decrypt(
+          { name: "AES-GCM", iv: base64ToUint8(fIv) },
+          recoveredFileKey,
+          encFile instanceof ArrayBuffer ? encFile : base64ToUint8(encFile as unknown as string),
+        );
+
+        const decryptFileResult: DecryptFileResultData = {
+          decryptedFile: decryptedFile,
+        };
+
+        // Transfer the ArrayBuffer to avoid copying
+        self.postMessage(
+          { type: "RESULT", id, success: true, data: decryptFileResult },
+          [decryptFileResult.decryptedFile],
+        );
+        break;
+      }
+
+      // ----------------------------------------------------------
+      // FORWARD_KEYS: Unwrap message/attachment keys and re-wrap for a new recipient
+      // Used when a new member requests access to pre-join messages
+      // ----------------------------------------------------------
+      case "FORWARD_KEYS": {
+        if (!_cachedKeys) throw new Error("Keys not unlocked — call LOGIN_DECRYPT first");
+
+        const { requesterX25519PublicKey, messageKeys, attachmentKeys } = payload;
+
+        // Import requester's X25519 public key once
+        const requesterPub = await crypto.subtle.importKey(
+          "raw",
+          base64ToUint8(requesterX25519PublicKey),
+          { name: "X25519" },
+          false,
+          [],
+        );
+
+        // Helper: unwrap a key with our private key, then re-wrap for requester
+        async function forwardKey(
+          encryptedKey: string,
+          ephPubKey: string,
+          hkdfInfo: string,
+        ): Promise<{ encryptedKey: string; ephemeralPublicKey: string }> {
+          const encKeyBytes = base64ToUint8(encryptedKey);
+          const wrapIv = encKeyBytes.slice(0, 12);
+          const wrappedKey = encKeyBytes.slice(12);
+
+          // Step 1: Import sender's ephemeral public key
+          const ephPub = await crypto.subtle.importKey(
+            "raw",
+            base64ToUint8(ephPubKey),
+            { name: "X25519" },
+            false,
+            [],
+          );
+
+          // Step 2: ECDH with our private key to get shared bits
+          const sharedBits = await crypto.subtle.deriveBits(
+            { name: "X25519", public: ephPub },
+            _cachedKeys!.x25519PrivateKey,
+            256,
+          );
+
+          // Step 3: HKDF -> unwrap key
+          const hkdfKey = await crypto.subtle.importKey("raw", sharedBits, "HKDF", false, ["deriveKey"]);
+          const unwrapKeyObj = await crypto.subtle.deriveKey(
+            { name: "HKDF", hash: "SHA-256", salt: new Uint8Array(32), info: new TextEncoder().encode(hkdfInfo) },
+            hkdfKey,
+            { name: "AES-GCM", length: 256 },
+            false,
+            ["unwrapKey"],
+          );
+
+          // Step 4: Unwrap the message/file key as extractable so we can re-wrap it
+          const originalKey = await crypto.subtle.unwrapKey(
+            "raw",
+            wrappedKey,
+            unwrapKeyObj,
+            { name: "AES-GCM", iv: wrapIv },
+            { name: "AES-GCM", length: 256 },
+            true, // extractable! needed to re-wrap
+            ["encrypt", "decrypt"],
+          );
+
+          // Step 5: Generate fresh ephemeral keypair for the requester
+          const newEphemeralKp = await crypto.subtle.generateKey(
+            { name: "X25519" },
+            false,
+            ["deriveKey", "deriveBits"],
+          );
+
+          // Step 6: ECDH: new ephemeral private x requester public -> shared secret
+          const newSharedBits = await crypto.subtle.deriveBits(
+            { name: "X25519", public: requesterPub },
+            newEphemeralKp.privateKey,
+            256,
+          );
+
+          // Step 7: HKDF -> new wrap key
+          const newHkdfKey = await crypto.subtle.importKey("raw", newSharedBits, "HKDF", false, ["deriveKey"]);
+          const newWrapKey = await crypto.subtle.deriveKey(
+            { name: "HKDF", hash: "SHA-256", salt: new Uint8Array(32), info: new TextEncoder().encode(hkdfInfo) },
+            newHkdfKey,
+            { name: "AES-GCM", length: 256 },
+            false,
+            ["wrapKey"],
+          );
+
+          // Step 8: Wrap the original key for the requester
+          const newWrapIv = crypto.getRandomValues(new Uint8Array(12));
+          const reWrapped = new Uint8Array(
+            await crypto.subtle.wrapKey("raw", originalKey, newWrapKey, { name: "AES-GCM", iv: newWrapIv }),
+          );
+
+          // Concat newWrapIv + reWrapped
+          const combined = new Uint8Array(12 + reWrapped.length);
+          combined.set(newWrapIv, 0);
+          combined.set(reWrapped, 12);
+
+          // Export new ephemeral public key
+          const newEphPubBytes = new Uint8Array(await crypto.subtle.exportKey("raw", newEphemeralKp.publicKey));
+
+          return {
+            encryptedKey: uint8ToBase64(combined),
+            ephemeralPublicKey: uint8ToBase64(newEphPubBytes),
+          };
+        }
+
+        // Forward all message keys
+        const forwardedMessageKeys = [];
+        for (const mk of messageKeys) {
+          try {
+            const result = await forwardKey(mk.encryptedMessageKey, mk.ephemeralPublicKey, MESSAGE_KEY_WRAP_INFO);
+            forwardedMessageKeys.push({
+              messageId: mk.messageId,
+              encryptedMessageKey: result.encryptedKey,
+              ephemeralPublicKey: result.ephemeralPublicKey,
+            });
+          } catch (err) {
+            // Skip keys we can't unwrap (shouldn't happen but be defensive)
+            console.warn(`[FORWARD_KEYS] Failed to forward message key ${mk.messageId}:`, err);
+          }
+        }
+
+        // Forward all attachment keys
+        const forwardedAttachmentKeys = [];
+        for (const ak of attachmentKeys) {
+          try {
+            const result = await forwardKey(ak.encryptedFileKey, ak.ephemeralPublicKey, FILE_KEY_WRAP_INFO);
+            forwardedAttachmentKeys.push({
+              attachmentId: ak.attachmentId,
+              encryptedFileKey: result.encryptedKey,
+              ephemeralPublicKey: result.ephemeralPublicKey,
+            });
+          } catch (err) {
+            console.warn(`[FORWARD_KEYS] Failed to forward attachment key ${ak.attachmentId}:`, err);
+          }
+        }
+
+        const forwardResult: ForwardKeysResultData = {
+          messageKeys: forwardedMessageKeys,
+          attachmentKeys: forwardedAttachmentKeys,
+        };
+
+        postResult(forwardResult);
         break;
       }
 

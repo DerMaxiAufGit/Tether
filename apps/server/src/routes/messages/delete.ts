@@ -58,7 +58,7 @@ export default async function deleteMessageRoute(fastify: FastifyInstance): Prom
       await db.delete(messages).where(eq(messages.id, messageId));
 
       // Broadcast deletion to all channel room members
-      fastify.io.to(`channel:${channelId}`).emit("message:deleted", {
+      fastify.io?.to(`channel:${channelId}`).emit("message:deleted", {
         messageId,
         channelId,
         serverId: channel?.serverId ?? null,

@@ -22,9 +22,12 @@ import type {
   ClearKeysResultData,
   EncryptReactionResultData,
   DecryptReactionResultData,
+  EncryptFileResultData,
+  DecryptFileResultData,
+  ForwardKeysResultData,
 } from "@tether/shared";
 
-export type { EncryptMessageResultData, DecryptMessageResultData, EncryptReactionResultData, DecryptReactionResultData };
+export type { EncryptMessageResultData, DecryptMessageResultData, EncryptReactionResultData, DecryptReactionResultData, EncryptFileResultData, DecryptFileResultData, ForwardKeysResultData };
 
 // ============================================================
 // Worker instantiation (Vite module worker pattern)
@@ -98,7 +101,17 @@ function call<T>(
       reject,
       onProgress,
     });
-    worker.postMessage({ id, type, payload });
+
+    // Transfer ArrayBuffer payloads to avoid copying large file data
+    const transferables: Transferable[] = [];
+    if (type === "ENCRYPT_FILE" && payload.fileBytes instanceof ArrayBuffer) {
+      transferables.push(payload.fileBytes);
+    }
+    if (type === "DECRYPT_FILE" && payload.encryptedFile instanceof ArrayBuffer) {
+      transferables.push(payload.encryptedFile);
+    }
+
+    worker.postMessage({ id, type, payload }, transferables);
   });
 }
 
@@ -344,6 +357,58 @@ export function decryptReaction(payload: {
   ephemeralPublicKey: string;
 }): Promise<DecryptReactionResultData> {
   return call<DecryptReactionResultData>("DECRYPT_REACTION", payload);
+}
+
+/**
+ * Encrypts a file (ArrayBuffer) for multiple recipients using ephemeral X25519 ECDH.
+ * Same pattern as encryptMessage but operates on raw bytes instead of strings.
+ * Requires keys to have been unlocked via loginDecrypt() first.
+ *
+ * @param payload.fileBytes    The file content as ArrayBuffer
+ * @param payload.recipients   Array of {userId, x25519PublicKey} for each intended recipient
+ */
+export function encryptFile(payload: {
+  fileBytes: ArrayBuffer;
+  recipients: Array<{ userId: string; x25519PublicKey: string }>;
+}): Promise<EncryptFileResultData> {
+  return call<EncryptFileResultData>("ENCRYPT_FILE", payload as unknown as Record<string, unknown>);
+}
+
+/**
+ * Decrypts an encrypted file using the cached private key.
+ * Reverses the ECDH + HKDF + AES-256-GCM wrap to recover the original file bytes.
+ * Requires keys to have been unlocked via loginDecrypt() first.
+ *
+ * @param payload  The encrypted file data (ciphertext + recipient key info)
+ */
+export function decryptFile(payload: {
+  encryptedFile: ArrayBuffer;
+  fileIv: string;
+  encryptedFileKey: string;
+  ephemeralPublicKey: string;
+}): Promise<DecryptFileResultData> {
+  return call<DecryptFileResultData>("DECRYPT_FILE", payload as unknown as Record<string, unknown>);
+}
+
+/**
+ * Forwards message/attachment keys from the granter's wrapped copies to a new recipient.
+ * Unwraps each key with the granter's X25519 private key, then re-wraps for the requester's
+ * X25519 public key using fresh ephemeral keypairs.
+ */
+export function forwardKeys(payload: {
+  requesterX25519PublicKey: string;
+  messageKeys: Array<{
+    messageId: string;
+    encryptedMessageKey: string;
+    ephemeralPublicKey: string;
+  }>;
+  attachmentKeys: Array<{
+    attachmentId: string;
+    encryptedFileKey: string;
+    ephemeralPublicKey: string;
+  }>;
+}): Promise<ForwardKeysResultData> {
+  return call<ForwardKeysResultData>("FORWARD_KEYS", payload);
 }
 
 /**

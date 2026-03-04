@@ -23,7 +23,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { getAccessToken } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
 import { decryptMessage } from "@/lib/crypto";
-import type { MessageEnvelope } from "@tether/shared";
+import type { MessageEnvelope, HistoryRequestedEvent, HistoryGrantedEvent } from "@tether/shared";
 import type { DecryptedMessage } from "@/hooks/useMessages";
 import type { ChannelUnread } from "@/hooks/useUnread";
 
@@ -221,6 +221,22 @@ export function SocketProvider({ children }: SocketProviderProps) {
           ephemeralPublicKey: myKey.ephemeralPublicKey,
         });
 
+        // Extract the current user's attachment keys from the broadcast envelope
+        const messageAttachments = (data.attachments ?? []).map((att) => {
+          const myAttKey = att.recipientKeys?.find((k) => k.recipientUserId === user?.id);
+          return {
+            id: att.id,
+            fileName: att.fileName,
+            mimeType: att.mimeType,
+            fileSize: att.fileSize,
+            isImage: att.isImage,
+            fileIv: att.fileIv,
+            recipientKey: myAttKey
+              ? { encryptedFileKey: myAttKey.encryptedFileKey, ephemeralPublicKey: myAttKey.ephemeralPublicKey }
+              : null,
+          };
+        });
+
         const decryptedMsg: DecryptedMessage = {
           id: data.messageId,
           channelId: data.channelId,
@@ -237,6 +253,7 @@ export function SocketProvider({ children }: SocketProviderProps) {
             encryptedMessageKey: myKey.encryptedMessageKey,
             ephemeralPublicKey: myKey.ephemeralPublicKey,
           },
+          attachments: messageAttachments,
           plaintext: result.plaintext,
           decryptionFailed: false,
           status: "received",
@@ -299,6 +316,28 @@ export function SocketProvider({ children }: SocketProviderProps) {
       void queryClient.invalidateQueries({ queryKey: ["unread"] });
     };
 
+    const onHistoryRequested = (data: HistoryRequestedEvent) => {
+      // Skip if this is our own request
+      if (data.requesterId === user?.id) return;
+      // Store in query cache so HistoryGrantPrompt can render
+      queryClient.setQueryData<HistoryRequestedEvent[]>(
+        ["history-requests"],
+        (old) => {
+          const existing = old ?? [];
+          // Avoid duplicates
+          if (existing.some((r) => r.requestId === data.requestId)) return existing;
+          return [...existing, data];
+        },
+      );
+    };
+
+    const onHistoryGranted = (data: HistoryGrantedEvent) => {
+      // Invalidate messages for the channel so they re-fetch with new keys
+      void queryClient.invalidateQueries({ queryKey: ["messages", data.channelId] });
+      // Invalidate history status so the request button disappears
+      void queryClient.invalidateQueries({ queryKey: ["history-status", data.channelId] });
+    };
+
     const onMessageDeleted = (data: { messageId: string; channelId: string }) => {
       queryClient.setQueryData<{ pages: DecryptedMessage[][]; pageParams: unknown[] }>(
         ["messages", data.channelId],
@@ -339,6 +378,8 @@ export function SocketProvider({ children }: SocketProviderProps) {
     socket.on("message:created", onMessageCreatedWrapper);
     socket.on("message:deleted", onMessageDeleted);
     socket.on("unread:cleared", onUnreadCleared);
+    socket.on("history:requested", onHistoryRequested);
+    socket.on("history:granted", onHistoryGranted);
 
     return () => {
       socket.off("server:created", onServerCreated);
@@ -354,6 +395,8 @@ export function SocketProvider({ children }: SocketProviderProps) {
       socket.off("message:created", onMessageCreatedWrapper);
       socket.off("message:deleted", onMessageDeleted);
       socket.off("unread:cleared", onUnreadCleared);
+      socket.off("history:requested", onHistoryRequested);
+      socket.off("history:granted", onHistoryGranted);
     };
   }, [socket, queryClient, navigate, user]);
 

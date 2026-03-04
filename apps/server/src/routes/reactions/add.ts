@@ -170,7 +170,7 @@ export default async function addReactionRoute(fastify: FastifyInstance): Promis
         };
 
         // Broadcast to all channel room members
-        fastify.io.to(`channel:${channelId}`).emit("reaction:added", broadcastEnvelope);
+        fastify.io?.to(`channel:${channelId}`).emit("reaction:added", broadcastEnvelope);
 
         return reply.code(201).send({
           id: reaction.id,

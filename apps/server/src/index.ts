@@ -24,6 +24,11 @@ import reorderChannelsRoute from "./routes/channels/reorder.js";
 import createMessageRoute from "./routes/messages/create.js";
 import listMessagesRoute from "./routes/messages/list.js";
 import deleteMessageRoute from "./routes/messages/delete.js";
+import historyStatusRoute from "./routes/messages/history-status.js";
+import historyRequestRoute from "./routes/messages/history-request.js";
+import historyKeysRoute from "./routes/messages/history-keys.js";
+import historyGrantRoute from "./routes/messages/history-grant.js";
+import historyListRoute from "./routes/messages/history-list.js";
 import dmCreateRoute from "./routes/dms/create.js";
 import dmListRoute from "./routes/dms/list.js";
 import unreadRoute from "./routes/channels/unread.js";
@@ -31,11 +36,16 @@ import markReadRoute from "./routes/channels/mark-read.js";
 import addReactionRoute from "./routes/reactions/add.js";
 import removeReactionRoute from "./routes/reactions/remove.js";
 import { setupSocketIO } from "./socket/index.js";
+import { initBuckets } from "./lib/s3.js";
+import presignUploadRoute from "./routes/files/presign-upload.js";
+import presignDownloadRoute from "./routes/files/presign-download.js";
+import presignAvatarUploadRoute from "./routes/avatars/presign-upload.js";
+import updateAvatarRoute from "./routes/avatars/update.js";
 
 // Augment Fastify types so route handlers can access io
 declare module "fastify" {
   interface FastifyInstance {
-    io: SocketIOServer;
+    io: SocketIOServer | null;
   }
 }
 
@@ -89,6 +99,13 @@ await server.register(createMessageRoute, { prefix: "/api/channels" });
 await server.register(listMessagesRoute, { prefix: "/api/channels" });
 await server.register(deleteMessageRoute, { prefix: "/api/messages" });
 
+// History key forwarding routes
+await server.register(historyStatusRoute, { prefix: "/api/channels" });
+await server.register(historyRequestRoute, { prefix: "/api/channels" });
+await server.register(historyKeysRoute, { prefix: "/api/channels" });
+await server.register(historyGrantRoute, { prefix: "/api/channels" });
+await server.register(historyListRoute, { prefix: "/api/servers" });
+
 // DM routes
 await server.register(dmCreateRoute, { prefix: "/api/dms" });
 await server.register(dmListRoute, { prefix: "/api/dms" });
@@ -101,6 +118,14 @@ await server.register(markReadRoute, { prefix: "/api" });
 await server.register(addReactionRoute, { prefix: "/api" });
 await server.register(removeReactionRoute, { prefix: "/api" });
 
+// File routes
+await server.register(presignUploadRoute, { prefix: "/api/files" });
+await server.register(presignDownloadRoute, { prefix: "/api/files" });
+
+// Avatar routes
+await server.register(presignAvatarUploadRoute, { prefix: "/api/avatars" });
+await server.register(updateAvatarRoute, { prefix: "/api/avatars" });
+
 // Voice routes
 await server.register(import("./routes/voice/index.js"), { prefix: "/api/voice" });
 
@@ -109,7 +134,7 @@ const shutdown = async (): Promise<void> => {
   server.log.info("Shutting down server...");
   // Close Socket.IO and its Redis client before closing Fastify
   if (server.io) {
-    await new Promise<void>((resolve) => server.io.close(() => resolve()));
+    await new Promise<void>((resolve) => server.io!.close(() => resolve()));
   }
   await server.close();
   process.exit(0);
@@ -119,6 +144,10 @@ process.on("SIGTERM", shutdown);
 process.on("SIGINT", shutdown);
 
 const port = Number(process.env.PORT) || 3001;
+
+// Initialize MinIO buckets before starting the server
+await initBuckets();
+server.log.info("MinIO buckets initialized");
 
 server.listen({ port, host: "0.0.0.0" }, async (err, address) => {
   if (err) {

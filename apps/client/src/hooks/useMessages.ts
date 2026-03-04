@@ -14,6 +14,7 @@ import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-q
 import { api } from "@/lib/api";
 import { encryptMessage, decryptMessage } from "@/lib/crypto";
 import type { MessageResponse, SendMessageRequest } from "@tether/shared";
+import type { UploadedAttachment } from "@/lib/file-upload";
 
 // ============================================================
 // Types
@@ -71,8 +72,9 @@ export function useMessages(channelId: string) {
   });
 
   // Flatten pages and reverse so oldest messages come first (pages are newest-first from API)
+  // Filter out messages that failed to decrypt (no recipient key for this user)
   const messages: DecryptedMessage[] = query.data
-    ? [...query.data.pages].reverse().flatMap((page) => [...page].reverse())
+    ? [...query.data.pages].reverse().flatMap((page) => [...page].reverse()).filter((msg) => !msg.decryptionFailed)
     : [];
 
   return {
@@ -91,20 +93,35 @@ export function useMessages(channelId: string) {
 interface SendMessageVariables {
   plaintext: string;
   recipients: Array<{ userId: string; x25519PublicKey: string }>;
+  attachments?: UploadedAttachment[];
 }
 
 export function useSendMessage(channelId: string) {
   const queryClient = useQueryClient();
 
   return useMutation<MessageResponse, Error, SendMessageVariables, { optimisticId: string }>({
-    mutationFn: async ({ plaintext, recipients }) => {
+    mutationFn: async ({ plaintext, recipients, attachments: uploadedAttachments }) => {
       const encrypted = await encryptMessage(plaintext, recipients);
-      const body: SendMessageRequest = {
+      const body: SendMessageRequest & { attachments?: unknown[] } = {
         encryptedContent: encrypted.encryptedContent,
         contentIv: encrypted.contentIv,
         contentAlgorithm: "aes-256-gcm",
         recipients: encrypted.recipients,
       };
+
+      if (uploadedAttachments?.length) {
+        body.attachments = uploadedAttachments.map((att) => ({
+          attachmentId: att.attachmentId,
+          storageKey: att.storageKey,
+          fileName: att.fileName,
+          mimeType: att.mimeType,
+          fileSize: att.fileSize,
+          fileIv: att.fileIv,
+          isImage: att.isImage,
+          recipients: att.recipients,
+        }));
+      }
+
       const res = await api.post<{ message: MessageResponse }>(
         `/api/channels/${channelId}/messages`,
         body,
@@ -136,6 +153,7 @@ export function useSendMessage(channelId: string) {
             createdAt: new Date().toISOString(),
             editedAt: null,
             recipientKey: null,
+            attachments: [],
             plaintext,
             decryptionFailed: false,
             status: "pending",

@@ -171,9 +171,17 @@ function UserInfoBar() {
       {/* Main user row */}
       <div className="flex items-center gap-2 px-2 py-2">
         {/* Avatar */}
-        <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center shrink-0">
-          <span className="text-white text-xs font-bold">{initial}</span>
-        </div>
+        {user.avatarUrl ? (
+          <img
+            src={user.avatarUrl}
+            alt={user.displayName}
+            className="w-8 h-8 rounded-full object-cover shrink-0"
+          />
+        ) : (
+          <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center shrink-0">
+            <span className="text-white text-xs font-bold">{initial}</span>
+          </div>
+        )}
 
         {/* Name */}
         <span className="flex-1 text-zinc-300 text-sm font-medium truncate min-w-0">

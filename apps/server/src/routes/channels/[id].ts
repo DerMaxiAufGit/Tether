@@ -94,7 +94,7 @@ export default async function channelByIdRoute(fastify: FastifyInstance): Promis
 
       // Broadcast to all server members
       fastify.io
-        .to(`server:${serverId}`)
+        ?.to(`server:${serverId}`)
         .emit("channel:updated", { serverId, channel: updated });
 
       return reply.code(200).send({ channel: updated });
@@ -182,7 +182,7 @@ export default async function channelByIdRoute(fastify: FastifyInstance): Promis
 
       // Broadcast to all server members
       fastify.io
-        .to(`server:${serverId}`)
+        ?.to(`server:${serverId}`)
         .emit("channel:deleted", { serverId, channelId });
 
       return reply.code(200).send({ ok: true });

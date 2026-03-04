@@ -3,6 +3,8 @@
 // All binary data transmitted as base64 strings
 // ============================================================
 
+import type { AttachmentData } from "./file.js";
+
 export interface MessageRecipientKeyData {
   recipientUserId: string;
   encryptedMessageKey: string; // base64 — first 12 bytes are wrapIv
@@ -34,6 +36,22 @@ export interface MessageResponse {
     encryptedMessageKey: string; // base64
     ephemeralPublicKey: string;  // base64
   } | null;
+  attachments: AttachmentData[];
+}
+
+// Attachment data in the broadcast envelope (includes all recipient keys, not just current user's)
+export interface AttachmentEnvelopeData {
+  id: string;
+  fileName: string;
+  mimeType: string;
+  fileSize: number;
+  isImage: boolean;
+  fileIv: string;
+  recipientKeys: Array<{
+    recipientUserId: string;
+    encryptedFileKey: string;
+    ephemeralPublicKey: string;
+  }>;
 }
 
 // Socket.IO envelope broadcast to channel room (all recipient keys included)
@@ -49,4 +67,5 @@ export interface MessageEnvelope {
   epoch: number;
   createdAt: string;
   recipientKeys: MessageRecipientKeyData[];
+  attachments: AttachmentEnvelopeData[];
 }

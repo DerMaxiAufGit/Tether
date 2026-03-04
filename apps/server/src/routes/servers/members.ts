@@ -173,14 +173,14 @@ export default async function serverMembersRoute(fastify: FastifyInstance): Prom
 
       // Notify remaining members in the server room (member list update)
       fastify.io
-        .to(`server:${serverId}`)
+        ?.to(`server:${serverId}`)
         .emit("member:left", { serverId, userId: targetUserId });
 
       // If this was a kick (not a self-leave), notify the kicked user's personal room
       // so they can react even if they have multiple tabs/connections
       if (!isSelf) {
         fastify.io
-          .to(`user:${targetUserId}`)
+          ?.to(`user:${targetUserId}`)
           .emit("member:kicked", { serverId });
       }
 

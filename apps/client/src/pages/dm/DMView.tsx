@@ -11,12 +11,14 @@
  * Layout: identical to ChannelView — header + message list + input
  */
 
-import { useEffect } from "react";
+import { useEffect, useCallback, useMemo } from "react";
 import { useParams } from "react-router-dom";
 import { useDMs } from "@/hooks/useDMs";
 import { useSendMessage } from "@/hooks/useMessages";
 import { useAuth } from "@/hooks/useAuth";
 import { useSocket } from "@/hooks/useSocket";
+import { useFileUpload } from "@/hooks/useFileUpload";
+import type { UploadedAttachment } from "@/lib/file-upload";
 import MessageList from "@/components/chat/MessageList";
 import MessageInput from "@/components/chat/MessageInput";
 
@@ -50,6 +52,21 @@ export default function DMView() {
   const hue = participant ? stringToHue(participant.id) : 0;
   const initial = participant?.displayName[0]?.toUpperCase() ?? "?";
 
+  // Build recipients list for E2EE (exactly 2: self + other participant)
+  const recipients = useMemo(() => {
+    if (!user || !participant) return [];
+    const r: Array<{ userId: string; x25519PublicKey: string }> = [];
+    if (participant.x25519PublicKey) {
+      r.push({ userId: participant.id, x25519PublicKey: participant.x25519PublicKey });
+    }
+    if (user.x25519PublicKey) {
+      r.push({ userId: user.id, x25519PublicKey: user.x25519PublicKey });
+    }
+    return r;
+  }, [user, participant]);
+
+  const fileUpload = useFileUpload({ channelId: channelId ?? "", recipients });
+
   // Subscribe to DM channel room on mount
   useEffect(() => {
     if (!channelId) return;
@@ -57,32 +74,24 @@ export default function DMView() {
   }, [channelId, socket]);
 
   // Send handler — exactly 2 recipients: self + other participant
-  function handleSend(plaintext: string) {
-    if (!channelId || !user || !participant) return;
+  const handleSend = useCallback(
+    async (plaintext: string) => {
+      if (!channelId || !user || !participant) return;
+      if (recipients.length === 0) return;
 
-    // Both participants need x25519 public keys for E2EE
-    const recipients: Array<{ userId: string; x25519PublicKey: string }> = [];
+      // If a file is attached, upload it first
+      let uploadedAttachments: UploadedAttachment[] | undefined;
+      if (fileUpload.file) {
+        const uploaded = await fileUpload.startUpload();
+        if (!uploaded) return; // upload failed or was cancelled
+        uploadedAttachments = [uploaded];
+      }
 
-    // Add the other participant
-    if (participant.x25519PublicKey) {
-      recipients.push({
-        userId: participant.id,
-        x25519PublicKey: participant.x25519PublicKey,
-      });
-    }
-
-    // Add self (so we can decrypt our own sent messages)
-    if (user.x25519PublicKey) {
-      recipients.push({
-        userId: user.id,
-        x25519PublicKey: user.x25519PublicKey,
-      });
-    }
-
-    if (recipients.length === 0) return;
-
-    sendMessage.mutate({ plaintext, recipients });
-  }
+      sendMessage.mutate({ plaintext, recipients, attachments: uploadedAttachments });
+      fileUpload.clearFile();
+    },
+    [channelId, user, participant, recipients, sendMessage, fileUpload],
+  );
 
   if (!channelId) {
     return (
@@ -131,6 +140,11 @@ export default function DMView() {
           onSend={handleSend}
           disabled={sendMessage.isPending}
           placeholder={participant ? `Message ${participant.displayName}` : "Message"}
+          onFileSelect={fileUpload.selectFile}
+          attachedFile={fileUpload.file ? { name: fileUpload.file.name, size: fileUpload.file.size } : null}
+          uploadProgress={fileUpload.progress}
+          uploadError={fileUpload.error}
+          onFileCancel={fileUpload.clearFile}
         />
       </div>
     </div>

@@ -72,6 +72,7 @@ export default async function loginRoute(fastify: FastifyInstance): Promise<void
           id: user.id,
           email: user.email,
           displayName: user.displayName,
+          avatarUrl: user.avatarUrl,
         },
         keyBundle: {
           salt: (user.kdfSalt as Buffer).toString("base64"),

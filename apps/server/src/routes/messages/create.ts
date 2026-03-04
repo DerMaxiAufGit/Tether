@@ -1,13 +1,28 @@
 import type { FastifyInstance } from "fastify";
 import { db } from "../../db/client.js";
-import { channels, serverMembers, dmParticipants, messages, messageRecipientKeys, users } from "../../db/schema.js";
+import { channels, serverMembers, dmParticipants, messages, messageRecipientKeys, users, attachments, attachmentRecipientKeys } from "../../db/schema.js";
 import { eq, and } from "drizzle-orm";
-import type { MessageEnvelope } from "@tether/shared";
+import type { MessageEnvelope, AttachmentEnvelopeData } from "@tether/shared";
 
 interface RecipientKeyInput {
   recipientUserId: string;
   encryptedMessageKey: string; // base64
   ephemeralPublicKey: string; // base64
+}
+
+interface AttachmentInput {
+  attachmentId: string;
+  storageKey: string;
+  fileName: string;
+  mimeType: string;
+  fileSize: number;
+  fileIv: string;
+  isImage: boolean;
+  recipients: Array<{
+    recipientUserId: string;
+    encryptedFileKey: string; // base64
+    ephemeralPublicKey: string; // base64
+  }>;
 }
 
 interface SendMessageBody {
@@ -16,6 +31,7 @@ interface SendMessageBody {
   contentAlgorithm?: string;
   epoch?: number;
   recipients: RecipientKeyInput[];
+  attachments?: AttachmentInput[];
 }
 
 /**
@@ -56,6 +72,35 @@ export default async function createMessageRoute(fastify: FastifyInstance): Prom
                   recipientUserId: { type: "string", format: "uuid" },
                   encryptedMessageKey: { type: "string" },
                   ephemeralPublicKey: { type: "string" },
+                },
+              },
+            },
+            attachments: {
+              type: "array",
+              items: {
+                type: "object",
+                required: ["attachmentId", "storageKey", "fileName", "mimeType", "fileSize", "fileIv", "isImage", "recipients"],
+                properties: {
+                  attachmentId: { type: "string", format: "uuid" },
+                  storageKey: { type: "string" },
+                  fileName: { type: "string" },
+                  mimeType: { type: "string" },
+                  fileSize: { type: "integer" },
+                  fileIv: { type: "string" },
+                  isImage: { type: "boolean" },
+                  recipients: {
+                    type: "array",
+                    minItems: 1,
+                    items: {
+                      type: "object",
+                      required: ["recipientUserId", "encryptedFileKey", "ephemeralPublicKey"],
+                      properties: {
+                        recipientUserId: { type: "string", format: "uuid" },
+                        encryptedFileKey: { type: "string" },
+                        ephemeralPublicKey: { type: "string" },
+                      },
+                    },
+                  },
                 },
               },
             },
@@ -142,6 +187,35 @@ export default async function createMessageRoute(fastify: FastifyInstance): Prom
 
           await tx.insert(messageRecipientKeys).values(recipientRows);
 
+          // Insert attachment records + recipient keys if present
+          if (request.body.attachments?.length) {
+            for (const att of request.body.attachments) {
+              const [insertedAtt] = await tx
+                .insert(attachments)
+                .values({
+                  id: att.attachmentId,
+                  messageId: inserted.id,
+                  uploaderId: userId,
+                  storageKey: att.storageKey,
+                  fileName: att.fileName,
+                  mimeType: att.mimeType,
+                  fileSize: att.fileSize,
+                  fileIv: att.fileIv,
+                  isImage: att.isImage ? 1 : 0,
+                })
+                .returning();
+
+              const attKeyRows = att.recipients.map((r) => ({
+                attachmentId: insertedAtt.id,
+                recipientUserId: r.recipientUserId,
+                encryptedFileKey: Buffer.from(r.encryptedFileKey, "base64"),
+                ephemeralPublicKey: Buffer.from(r.ephemeralPublicKey, "base64"),
+              }));
+
+              await tx.insert(attachmentRecipientKeys).values(attKeyRows);
+            }
+          }
+
           return inserted;
         });
 
@@ -167,6 +241,74 @@ export default async function createMessageRoute(fastify: FastifyInstance): Prom
           )
           .limit(1);
 
+        // Query attachments for this message (if any)
+        const messageAttachments = await db
+          .select()
+          .from(attachments)
+          .where(eq(attachments.messageId, message.id));
+
+        // For REST response: get sender's recipient key for each attachment
+        const attachmentData = await Promise.all(
+          messageAttachments.map(async (att) => {
+            const [senderAttKey] = await db
+              .select({
+                encryptedFileKey: attachmentRecipientKeys.encryptedFileKey,
+                ephemeralPublicKey: attachmentRecipientKeys.ephemeralPublicKey,
+              })
+              .from(attachmentRecipientKeys)
+              .where(
+                and(
+                  eq(attachmentRecipientKeys.attachmentId, att.id),
+                  eq(attachmentRecipientKeys.recipientUserId, userId),
+                ),
+              )
+              .limit(1);
+
+            return {
+              id: att.id,
+              fileName: att.fileName,
+              mimeType: att.mimeType,
+              fileSize: att.fileSize,
+              isImage: !!att.isImage,
+              fileIv: att.fileIv,
+              recipientKey: senderAttKey
+                ? {
+                    encryptedFileKey: senderAttKey.encryptedFileKey?.toString("base64") ?? "",
+                    ephemeralPublicKey: senderAttKey.ephemeralPublicKey?.toString("base64") ?? "",
+                  }
+                : null,
+            };
+          }),
+        );
+
+        // For Socket.IO broadcast: get ALL recipient keys for each attachment
+        const attachmentEnvelopeData: AttachmentEnvelopeData[] = await Promise.all(
+          messageAttachments.map(async (att) => {
+            const allAttKeys = await db
+              .select({
+                recipientUserId: attachmentRecipientKeys.recipientUserId,
+                encryptedFileKey: attachmentRecipientKeys.encryptedFileKey,
+                ephemeralPublicKey: attachmentRecipientKeys.ephemeralPublicKey,
+              })
+              .from(attachmentRecipientKeys)
+              .where(eq(attachmentRecipientKeys.attachmentId, att.id));
+
+            return {
+              id: att.id,
+              fileName: att.fileName,
+              mimeType: att.mimeType,
+              fileSize: att.fileSize,
+              isImage: !!att.isImage,
+              fileIv: att.fileIv,
+              recipientKeys: allAttKeys.map((k) => ({
+                recipientUserId: k.recipientUserId,
+                encryptedFileKey: k.encryptedFileKey?.toString("base64") ?? "",
+                ephemeralPublicKey: k.ephemeralPublicKey?.toString("base64") ?? "",
+              })),
+            };
+          }),
+        );
+
         // Build the REST response envelope (MessageResponse shape — sender's key only)
         const envelope = {
           id: message.id,
@@ -186,6 +328,7 @@ export default async function createMessageRoute(fastify: FastifyInstance): Prom
                 ephemeralPublicKey: senderKey.ephemeralPublicKey?.toString("base64") ?? null,
               }
             : null,
+          attachments: attachmentData,
         };
 
         // Query ALL recipient keys for the Socket.IO broadcast envelope
@@ -215,15 +358,16 @@ export default async function createMessageRoute(fastify: FastifyInstance): Prom
             encryptedMessageKey: k.encryptedMessageKey?.toString("base64") ?? "",
             ephemeralPublicKey: k.ephemeralPublicKey?.toString("base64") ?? "",
           })),
+          attachments: attachmentEnvelopeData,
         };
 
         // Broadcast to all channel room members (client deduplicates via optimistic ID)
-        const room = fastify.io.sockets.adapter.rooms.get(`channel:${channelId}`);
+        const room = fastify.io?.sockets.adapter.rooms.get(`channel:${channelId}`);
         request.log.info(
           { channelId, messageId: message.id, roomSize: room?.size ?? 0 },
           "[broadcast] message:created → channel room"
         );
-        fastify.io.to(`channel:${channelId}`).emit("message:created", broadcastEnvelope);
+        fastify.io?.to(`channel:${channelId}`).emit("message:created", broadcastEnvelope);
 
         return reply.code(201).send({ message: envelope });
       },

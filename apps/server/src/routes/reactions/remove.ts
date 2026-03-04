@@ -71,7 +71,7 @@ export default async function removeReactionRoute(fastify: FastifyInstance): Pro
           reactorId: userId,
         };
 
-        fastify.io.to(`channel:${channelId}`).emit("reaction:removed", removedEvent);
+        fastify.io?.to(`channel:${channelId}`).emit("reaction:removed", removedEvent);
 
         return reply.code(204).send();
       },

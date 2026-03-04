@@ -88,7 +88,7 @@ export default async function markReadRoute(fastify: FastifyInstance): Promise<v
           });
 
         // Notify other tabs that this channel has been marked as read
-        fastify.io.to(`user:${userId}`).emit("unread:cleared", { channelId });
+        fastify.io?.to(`user:${userId}`).emit("unread:cleared", { channelId });
 
         return reply.code(204).send();
       },

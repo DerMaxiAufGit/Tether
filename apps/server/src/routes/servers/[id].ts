@@ -141,7 +141,7 @@ export default async function serverByIdRoute(fastify: FastifyInstance): Promise
       }
 
       // Broadcast before delete so members still in the room receive the event
-      fastify.io.to(`server:${serverId}`).emit("server:deleted", { serverId });
+      fastify.io?.to(`server:${serverId}`).emit("server:deleted", { serverId });
 
       // Cascade delete handles channels, members, invites via schema FK
       await db.delete(servers).where(eq(servers.id, serverId));

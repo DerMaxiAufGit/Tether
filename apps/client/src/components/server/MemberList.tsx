@@ -180,7 +180,7 @@ interface MemberRowProps {
   member: {
     id: string;
     userId: string;
-    user: { displayName: string };
+    user: { displayName: string; avatarUrl?: string | null };
   };
   status: PresenceStatus;
   isOwner: boolean;
@@ -201,12 +201,20 @@ function MemberRow({ member, status, isOwner, isSelf, dimmed, onMessage }: Membe
         >
           {/* Avatar with presence dot */}
           <div className="relative shrink-0">
-            <div
-              className="w-8 h-8 rounded-full flex items-center justify-center"
-              style={{ backgroundColor: `hsl(${hue}, 45%, 35%)` }}
-            >
-              <span className="text-white text-xs font-bold">{initials}</span>
-            </div>
+            {member.user.avatarUrl ? (
+              <img
+                src={member.user.avatarUrl}
+                alt={member.user.displayName}
+                className="w-8 h-8 rounded-full object-cover"
+              />
+            ) : (
+              <div
+                className="w-8 h-8 rounded-full flex items-center justify-center"
+                style={{ backgroundColor: `hsl(${hue}, 45%, 35%)` }}
+              >
+                <span className="text-white text-xs font-bold">{initials}</span>
+              </div>
+            )}
             <PresenceDot status={status} size="sm" />
           </div>
 

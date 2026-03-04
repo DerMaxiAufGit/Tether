@@ -15,6 +15,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { useMessages } from "@/hooks/useMessages";
 import { useAuth } from "@/hooks/useAuth";
 import { useDeleteMessage } from "@/hooks/useMessages";
+import { useHistoryStatus, useRequestHistory } from "@/hooks/useHistoryRequest";
 import { useMarkChannelRead } from "@/hooks/useUnread";
 import { useReactions, useAddReaction, useRemoveReaction } from "@/hooks/useReactions";
 import MessageItem from "./MessageItem";
@@ -69,6 +70,8 @@ export default function MessageList({ channelId, channelName, serverId, members 
     useMessages(channelId);
   const deleteMessage = useDeleteMessage(channelId);
   const markRead = useMarkChannelRead();
+  const { data: historyStatus } = useHistoryStatus(channelId);
+  const requestHistory = useRequestHistory(channelId);
   const { getReactionGroups } = useReactions(channelId);
   const addReaction = useAddReaction();
   const removeReaction = useRemoveReaction();
@@ -317,6 +320,33 @@ export default function MessageList({ channelId, channelName, serverId, members 
                 strokeDashoffset="15"
               />
             </svg>
+          </div>
+        )}
+
+        {/* History request banner — shown when user has undecryptable messages */}
+        {!isLoading && historyStatus?.hasUndecryptableHistory && (
+          <div className="mx-4 mt-3 mb-2 p-3 rounded-lg bg-zinc-800/80 border border-zinc-700/50">
+            {historyStatus.pendingRequestId ? (
+              <div className="flex items-center gap-2 text-sm text-zinc-400">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="animate-spin shrink-0">
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeDasharray="31.4 31.4" strokeDashoffset="15" />
+                </svg>
+                <span>Waiting for a member to grant access to {historyStatus.undecryptableCount} older message{historyStatus.undecryptableCount !== 1 ? "s" : ""}...</span>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-sm text-zinc-400">
+                  {historyStatus.undecryptableCount} older message{historyStatus.undecryptableCount !== 1 ? "s" : ""} sent before you joined
+                </p>
+                <button
+                  onClick={() => requestHistory.mutate()}
+                  disabled={requestHistory.isPending}
+                  className="px-3 py-1.5 text-sm font-medium rounded-md bg-indigo-600 hover:bg-indigo-500 text-white disabled:opacity-50 transition-colors shrink-0"
+                >
+                  {requestHistory.isPending ? "Requesting..." : "Request Previous Messages"}
+                </button>
+              </div>
+            )}
           </div>
         )}
 

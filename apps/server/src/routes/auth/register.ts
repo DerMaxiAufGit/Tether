@@ -132,6 +132,7 @@ export default async function registerRoute(fastify: FastifyInstance): Promise<v
           id: newUser.id,
           email: newUser.email,
           displayName: newUser.displayName,
+          avatarUrl: null,
         },
       });
     },

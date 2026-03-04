@@ -367,3 +367,74 @@ export const reactionRecipientKeys = pgTable(
 
 export type ReactionRecipientKey = InferSelectModel<typeof reactionRecipientKeys>;
 export type NewReactionRecipientKey = InferInsertModel<typeof reactionRecipientKeys>;
+
+// ---------------------------------------------------------------------------
+// attachments — Encrypted file metadata linked to messages
+// File bytes are stored in MinIO; server only holds metadata
+// ---------------------------------------------------------------------------
+
+export const attachments = pgTable("attachments", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  messageId: uuid("message_id")
+    .notNull()
+    .references(() => messages.id, { onDelete: "cascade" }),
+  uploaderId: uuid("uploader_id")
+    .notNull()
+    .references(() => users.id),
+  storageKey: text("storage_key").notNull(),
+  fileName: text("file_name").notNull(),
+  mimeType: text("mime_type").notNull(),
+  fileSize: integer("file_size").notNull(),
+  fileIv: text("file_iv").notNull(), // base64 AES-256-GCM nonce
+  isImage: integer("is_image").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type Attachment = InferSelectModel<typeof attachments>;
+export type NewAttachment = InferInsertModel<typeof attachments>;
+
+// ---------------------------------------------------------------------------
+// attachment_recipient_keys — Per-recipient wrapped file encryption key
+// Same pattern as messageRecipientKeys — ECDH + HKDF + AES-256-GCM wrap
+// ---------------------------------------------------------------------------
+
+export const attachmentRecipientKeys = pgTable(
+  "attachment_recipient_keys",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    attachmentId: uuid("attachment_id")
+      .notNull()
+      .references(() => attachments.id, { onDelete: "cascade" }),
+    recipientUserId: uuid("recipient_user_id")
+      .notNull()
+      .references(() => users.id),
+    encryptedFileKey: bytea("encrypted_file_key").notNull(),
+    ephemeralPublicKey: bytea("ephemeral_public_key").notNull(),
+  },
+  (t) => [uniqueIndex("ark_attachment_recipient_idx").on(t.attachmentId, t.recipientUserId)],
+);
+
+export type AttachmentRecipientKey = InferSelectModel<typeof attachmentRecipientKeys>;
+export type NewAttachmentRecipientKey = InferInsertModel<typeof attachmentRecipientKeys>;
+
+// ---------------------------------------------------------------------------
+// history_requests — Key forwarding requests from new members
+// Tracks which users have requested decryption keys for pre-join messages
+// ---------------------------------------------------------------------------
+
+export const historyRequests = pgTable("history_requests", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  channelId: uuid("channel_id")
+    .notNull()
+    .references(() => channels.id, { onDelete: "cascade" }),
+  requesterId: uuid("requester_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  status: text("status").notNull().default("pending"), // "pending" | "granted" | "expired"
+  granterId: uuid("granter_id").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  grantedAt: timestamp("granted_at"),
+});
+
+export type HistoryRequest = InferSelectModel<typeof historyRequests>;
+export type NewHistoryRequest = InferInsertModel<typeof historyRequests>;

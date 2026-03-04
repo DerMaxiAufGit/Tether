@@ -19,6 +19,8 @@ import { ContextMenu, AlertDialog, Tooltip } from "radix-ui";
 import type { DecryptedMessage } from "@/hooks/useMessages";
 import type { ReactionGroup } from "@/hooks/useReactions";
 import { ReactionPicker } from "./ReactionPicker";
+import FileAttachment from "./FileAttachment";
+import ImagePreview from "./ImagePreview";
 
 // ============================================================
 // Helpers
@@ -206,13 +208,21 @@ export default function MessageItem({
             {/* Avatar column */}
             <div className="w-10 shrink-0 flex flex-col items-center">
               {!isGrouped ? (
-                /* Avatar circle */
-                <div
-                  className="w-10 h-10 rounded-full flex items-center justify-center select-none"
-                  style={{ backgroundColor: `hsl(${hue}, 45%, 35%)` }}
-                >
-                  <span className="text-white text-sm font-bold">{initials}</span>
-                </div>
+                /* Avatar */
+                message.senderAvatarUrl ? (
+                  <img
+                    src={message.senderAvatarUrl}
+                    alt={message.senderDisplayName || "User"}
+                    className="w-10 h-10 rounded-full object-cover"
+                  />
+                ) : (
+                  <div
+                    className="w-10 h-10 rounded-full flex items-center justify-center select-none"
+                    style={{ backgroundColor: `hsl(${hue}, 45%, 35%)` }}
+                  >
+                    <span className="text-white text-sm font-bold">{initials}</span>
+                  </div>
+                )
               ) : (
                 /* Grouped: show small timestamp on hover */
                 <div className={`h-5 flex items-center transition-opacity ${isHovered ? "opacity-100" : "opacity-0"}`}>
@@ -293,6 +303,19 @@ export default function MessageItem({
                 )}
                 {message.status === "failed" && <RetryIcon />}
               </div>
+
+              {/* File attachments */}
+              {message.attachments && message.attachments.length > 0 && (
+                <div className="flex flex-col gap-1">
+                  {message.attachments.filter(att => att.recipientKey).map((att) =>
+                    att.isImage ? (
+                      <ImagePreview key={att.id} attachment={att} />
+                    ) : (
+                      <FileAttachment key={att.id} attachment={att} />
+                    ),
+                  )}
+                </div>
+              )}
 
               {/* Reaction pills — emoji + count */}
               {reactionGroups.length > 0 && (

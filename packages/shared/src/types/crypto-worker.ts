@@ -109,6 +109,47 @@ export interface DecryptReactionRequest {
   };
 }
 
+export interface EncryptFileRequest {
+  type: "ENCRYPT_FILE";
+  id: string;
+  payload: {
+    fileBytes: ArrayBuffer;
+    recipients: Array<{
+      userId: string;
+      x25519PublicKey: string; // base64, raw 32 bytes
+    }>;
+  };
+}
+
+export interface DecryptFileRequest {
+  type: "DECRYPT_FILE";
+  id: string;
+  payload: {
+    encryptedFile: ArrayBuffer;
+    fileIv: string; // base64
+    encryptedFileKey: string; // base64 (first 12 bytes = wrapIv)
+    ephemeralPublicKey: string; // base64
+  };
+}
+
+export interface ForwardKeysRequest {
+  type: "FORWARD_KEYS";
+  id: string;
+  payload: {
+    requesterX25519PublicKey: string; // base64, raw 32 bytes
+    messageKeys: Array<{
+      messageId: string;
+      encryptedMessageKey: string; // base64 (first 12 bytes = wrapIv)
+      ephemeralPublicKey: string;  // base64
+    }>;
+    attachmentKeys: Array<{
+      attachmentId: string;
+      encryptedFileKey: string;   // base64 (first 12 bytes = wrapIv)
+      ephemeralPublicKey: string;  // base64
+    }>;
+  };
+}
+
 export interface EncryptMessageResultData {
   encryptedContent: string;    // base64
   contentIv: string;           // base64
@@ -138,6 +179,33 @@ export interface DecryptReactionResultData {
   reactorId: string;
 }
 
+export interface EncryptFileResultData {
+  encryptedFile: ArrayBuffer;
+  fileIv: string; // base64
+  recipients: Array<{
+    recipientUserId: string;
+    encryptedFileKey: string; // base64
+    ephemeralPublicKey: string; // base64
+  }>;
+}
+
+export interface DecryptFileResultData {
+  decryptedFile: ArrayBuffer;
+}
+
+export interface ForwardKeysResultData {
+  messageKeys: Array<{
+    messageId: string;
+    encryptedMessageKey: string; // base64
+    ephemeralPublicKey: string;  // base64
+  }>;
+  attachmentKeys: Array<{
+    attachmentId: string;
+    encryptedFileKey: string;   // base64
+    ephemeralPublicKey: string;  // base64
+  }>;
+}
+
 export interface RestoreKeysResultData {
   restored: boolean;
 }
@@ -156,7 +224,10 @@ export type CryptoWorkerRequest =
   | RestoreKeysRequest
   | ClearKeysRequest
   | EncryptReactionRequest
-  | DecryptReactionRequest;
+  | DecryptReactionRequest
+  | EncryptFileRequest
+  | DecryptFileRequest
+  | ForwardKeysRequest;
 
 // ---- Result data shapes ------------------------------------
 
@@ -226,6 +297,9 @@ export type CryptoWorkerResponse =
   | ResultResponse<ClearKeysResultData>
   | ResultResponse<EncryptReactionResultData>
   | ResultResponse<DecryptReactionResultData>
+  | ResultResponse<EncryptFileResultData>
+  | ResultResponse<DecryptFileResultData>
+  | ResultResponse<ForwardKeysResultData>
   | ErrorResponse;
 
 // ---- Convenience type aliases ------------------------------

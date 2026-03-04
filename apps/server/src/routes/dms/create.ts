@@ -149,8 +149,8 @@ export default async function createDMRoute(fastify: FastifyInstance): Promise<v
       });
 
       // Make both users' sockets join the channel room immediately
-      await request.server.io.to(`user:${userId}`).socketsJoin(`channel:${newChannelId}`);
-      await request.server.io.to(`user:${recipientUserId}`).socketsJoin(`channel:${newChannelId}`);
+      await request.server.io?.to(`user:${userId}`).socketsJoin(`channel:${newChannelId}`);
+      await request.server.io?.to(`user:${recipientUserId}`).socketsJoin(`channel:${newChannelId}`);
 
       return reply.code(201).send({
         channelId: newChannelId,

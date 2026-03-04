@@ -100,7 +100,7 @@ export default async function reorderChannelsRoute(fastify: FastifyInstance): Pr
           .where(inArray(channels.id, ids));
 
         // Broadcast to all server members (clients should refetch channel list)
-        fastify.io.to(`server:${serverId}`).emit("channel:reordered", { serverId });
+        fastify.io?.to(`server:${serverId}`).emit("channel:reordered", { serverId });
 
         return reply.code(200).send({ ok: true });
       },

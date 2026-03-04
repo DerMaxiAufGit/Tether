@@ -64,7 +64,7 @@ export default async function createChannelRoute(fastify: FastifyInstance): Prom
         .returning();
 
       // Broadcast to all server members
-      fastify.io.to(`server:${serverId}`).emit("channel:created", { serverId, channel });
+      fastify.io?.to(`server:${serverId}`).emit("channel:created", { serverId, channel });
 
       return reply.code(201).send({ channel });
     },

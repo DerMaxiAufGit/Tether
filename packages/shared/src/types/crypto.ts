@@ -31,3 +31,4 @@ export const AES_GCM_IV_LENGTH = 12;
 export const AUTH_HKDF_INFO = "tether-auth-key-v1";
 export const ENCRYPTION_HKDF_INFO = "tether-encryption-key-v1";
 export const MESSAGE_KEY_WRAP_INFO = "tether-message-key-wrap-v1";
+export const FILE_KEY_WRAP_INFO = "tether-file-key-wrap-v1";

@@ -59,7 +59,7 @@ export default async function createServerRoute(fastify: FastifyInstance): Promi
       });
 
       // Notify the creator's personal room so their client updates
-      fastify.io.to(`user:${userId}`).emit("server:created", { server });
+      fastify.io?.to(`user:${userId}`).emit("server:created", { server });
 
       return reply.code(201).send({ server });
     },
