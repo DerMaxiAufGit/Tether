@@ -143,6 +143,22 @@ Copy `.env.example` to `.env` or run `bash scripts/generate-secrets.sh` to auto-
 | `CLIENT_URL` | Frontend URL for CORS (default: `http://localhost`) |
 | `PORT` | Backend port (default: `3001`) |
 
+## Network Requirements
+
+The following ports must be open on your firewall/security group for Tether to function:
+
+| Port | Protocol | Service | Required |
+|------|----------|---------|----------|
+| 80 / 443 | TCP | HTTP(S) — web app and API | Yes |
+| 3478-3479 | TCP + UDP | STUN/TURN — voice/video NAT traversal | Yes (for voice/video) |
+| 5349-5350 | TCP + UDP | TURNS — TLS-encrypted TURN relay | Recommended for production |
+| 49152-49200 | UDP | TURN relay media ports | Yes (for voice/video) |
+
+**Notes:**
+- Ports 5432 (PostgreSQL), 6379 (Redis), and 9000/9001 (MinIO) are internal only and should **not** be exposed to the internet.
+- In production, set `COTURN_HOST` in your `.env` to the server's public IP or domain.
+- The TURN relay range (`49152-49200`) is intentionally small for development. For production with many concurrent voice users, expand it (e.g., `49152-65535`) and update both `docker-compose.yml` ports and the `--min-port`/`--max-port` coturn args to match.
+
 ## How Encryption Works
 
 1. **Account creation** — Your password is run through PBKDF2 (600,000 iterations) to derive a master key, then HKDF produces separate keys for authentication and encryption.
