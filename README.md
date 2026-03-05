@@ -51,7 +51,7 @@ Tether is an open-source Discord alternative where **all message content is encr
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/your-username/tether.git
+git clone https://github.com/DerMaxiAufGit/Tether.git
 cd tether
 
 # 2. Generate environment secrets
