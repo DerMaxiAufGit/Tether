@@ -219,4 +219,6 @@ services:
         condition: service_completed_successfully
     env_file:
       - .env
+    environment:
+      PORT: 3001
     restart: unless-stopped
