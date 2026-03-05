@@ -193,8 +193,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+    env_file:
+      - .env
     working_dir: /app/apps/server
     command: ["pnpm", "db:push"]
     restart: "no"
@@ -219,8 +219,4 @@ services:
         condition: service_completed_successfully
     env_file:
       - .env
-    environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
-      PORT: 3001
     restart: unless-stopped

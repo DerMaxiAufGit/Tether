@@ -68,6 +68,7 @@ COOKIE_SECRET=${COOKIE_SECRET}
 # ---------------------------------------------------------------------------
 COTURN_SECRET=${COTURN_SECRET}
 COTURN_REALM=tether.local
+COTURN_HOST=localhost
 
 # ---------------------------------------------------------------------------
 # MinIO
@@ -85,5 +86,9 @@ EOF
 echo "Generated ${ENV_FILE} with random secrets."
 echo ""
 echo "Next steps:"
-echo "  1. Review and customize CLIENT_URL and COTURN_REALM for your environment."
+echo "  1. Review and customize CLIENT_URL, COTURN_REALM, and COTURN_HOST for your environment."
 echo "  2. Run: docker compose up"
+echo ""
+echo "WARNING: If you regenerate secrets after PostgreSQL has already been initialized,"
+echo "         you must also remove the postgres volume to apply the new password:"
+echo "           docker compose down && docker volume rm \$(docker volume ls -q | grep postgres_data) && docker compose up"
