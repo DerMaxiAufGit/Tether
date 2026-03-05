@@ -1,7 +1,9 @@
 import type { FastifyInstance } from "fastify";
 import { db } from "../../db/client.js";
-import { channels, serverMembers, servers } from "../../db/schema.js";
+import { channels } from "../../db/schema.js";
 import { eq, and, inArray, sql } from "drizzle-orm";
+import { PERMISSIONS } from "@tether/shared";
+import { requirePermission } from "../../lib/permissions.js";
 
 interface ReorderChannelsBody {
   order: { id: string; position: number }[];
@@ -55,26 +57,10 @@ export default async function reorderChannelsRoute(fastify: FastifyInstance): Pr
         const { serverId } = request.params;
         const { order } = request.body;
 
-        // Verify user is a member of the server
-        const [membership] = await db
-          .select({ id: serverMembers.id })
-          .from(serverMembers)
-          .where(and(eq(serverMembers.serverId, serverId), eq(serverMembers.userId, userId)))
-          .limit(1);
-
-        if (!membership) {
-          return reply.code(404).send({ error: "Server not found" });
-        }
-
-        // Owner check
-        const [server] = await db
-          .select({ ownerId: servers.ownerId })
-          .from(servers)
-          .where(eq(servers.id, serverId))
-          .limit(1);
-
-        if (!server || server.ownerId !== userId) {
-          return reply.code(403).send({ error: "Only the server owner can reorder channels" });
+        // Require MANAGE_CHANNELS permission
+        const auth = await requirePermission(userId, serverId, PERMISSIONS.MANAGE_CHANNELS);
+        if (!auth) {
+          return reply.code(403).send({ error: "Missing MANAGE_CHANNELS permission" });
         }
 
         const ids = order.map((u) => u.id);

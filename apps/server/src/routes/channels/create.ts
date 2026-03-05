@@ -1,7 +1,9 @@
 import type { FastifyInstance } from "fastify";
 import { db } from "../../db/client.js";
-import { channels, serverMembers } from "../../db/schema.js";
-import { eq, and, max } from "drizzle-orm";
+import { channels } from "../../db/schema.js";
+import { eq, max } from "drizzle-orm";
+import { PERMISSIONS } from "@tether/shared";
+import { requirePermission } from "../../lib/permissions.js";
 
 interface CreateChannelBody {
   name: string;
@@ -39,15 +41,10 @@ export default async function createChannelRoute(fastify: FastifyInstance): Prom
       const { serverId } = request.params;
       const { name, type = "text" } = request.body;
 
-      // Verify user is a member of the server
-      const [membership] = await db
-        .select({ id: serverMembers.id })
-        .from(serverMembers)
-        .where(and(eq(serverMembers.serverId, serverId), eq(serverMembers.userId, userId)))
-        .limit(1);
-
-      if (!membership) {
-        return reply.code(404).send({ error: "Server not found" });
+      // Require MANAGE_CHANNELS permission
+      const auth = await requirePermission(userId, serverId, PERMISSIONS.MANAGE_CHANNELS);
+      if (!auth) {
+        return reply.code(403).send({ error: "Missing MANAGE_CHANNELS permission" });
       }
 
       // Get current max position to place the new channel at the end

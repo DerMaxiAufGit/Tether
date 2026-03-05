@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { eq, and, count, sql } from "drizzle-orm";
 import { db } from "../../db/client.js";
-import { invites, serverMembers, servers, users } from "../../db/schema.js";
+import { invites, serverMembers, servers, users, bans } from "../../db/schema.js";
 import type { InviteInfoResponse } from "@tether/shared";
 
 /**
@@ -109,6 +109,22 @@ export default async function inviteJoinRoute(fastify: FastifyInstance): Promise
           return { status: 409 as const, error: "Already a member of this server" };
         }
 
+        // Step 2b: Check if user is banned from this server
+        const [ban] = await tx
+          .select({ id: bans.id })
+          .from(bans)
+          .where(
+            and(
+              eq(bans.serverId, existingInvite.serverId),
+              eq(bans.userId, userId),
+            ),
+          )
+          .limit(1);
+
+        if (ban) {
+          return { status: 403 as const, error: "You are banned from this server" };
+        }
+
         // Step 3: Atomic update — increment uses only if invite is still valid.
         // Uses a single UPDATE with WHERE conditions to prevent race conditions.
         // If no row is returned, the invite expired or reached max uses between
@@ -141,6 +157,10 @@ export default async function inviteJoinRoute(fastify: FastifyInstance): Promise
 
         return { status: 200 as const, server, serverId: updatedInvite.serverId };
       });
+
+      if (result.status === 403) {
+        return reply.code(403).send({ error: result.error });
+      }
 
       if (result.status === 409) {
         return reply.code(409).send({ error: result.error });

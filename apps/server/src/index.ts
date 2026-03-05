@@ -16,10 +16,13 @@ import listServersRoute from "./routes/servers/index.js";
 import serverByIdRoute from "./routes/servers/[id].js";
 import serverMembersRoute from "./routes/servers/members.js";
 import serverInvitesRoute from "./routes/servers/invites.js";
+import serverRolesRoute from "./routes/servers/roles.js";
+import serverBansRoute from "./routes/servers/bans.js";
 import inviteJoinRoute from "./routes/invites/join.js";
 import listChannelsRoute from "./routes/channels/index.js";
 import createChannelRoute from "./routes/channels/create.js";
 import channelByIdRoute from "./routes/channels/[id].js";
+import channelOverridesRoute from "./routes/channels/overrides.js";
 import reorderChannelsRoute from "./routes/channels/reorder.js";
 import createMessageRoute from "./routes/messages/create.js";
 import listMessagesRoute from "./routes/messages/list.js";
@@ -84,6 +87,8 @@ await server.register(listServersRoute, { prefix: "/api/servers" });
 await server.register(serverByIdRoute, { prefix: "/api/servers" });
 await server.register(serverMembersRoute, { prefix: "/api/servers" });
 await server.register(serverInvitesRoute, { prefix: "/api/servers" });
+await server.register(serverRolesRoute, { prefix: "/api/servers" });
+await server.register(serverBansRoute, { prefix: "/api/servers" });
 
 // Invite routes
 await server.register(inviteJoinRoute, { prefix: "/api/invites" });
@@ -92,6 +97,7 @@ await server.register(inviteJoinRoute, { prefix: "/api/invites" });
 await server.register(listChannelsRoute, { prefix: "/api/servers" });
 await server.register(createChannelRoute, { prefix: "/api/servers" });
 await server.register(channelByIdRoute, { prefix: "/api/channels" });
+await server.register(channelOverridesRoute, { prefix: "/api/channels" });
 await server.register(reorderChannelsRoute, { prefix: "/api/servers" });
 
 // Message routes

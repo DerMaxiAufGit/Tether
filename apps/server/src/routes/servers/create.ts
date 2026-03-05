@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { db } from "../../db/client.js";
-import { servers, serverMembers, channels } from "../../db/schema.js";
-import type { CreateServerRequest } from "@tether/shared";
+import { servers, serverMembers, channels, roles } from "../../db/schema.js";
+import { CreateServerRequest, DEFAULT_EVERYONE_PERMISSIONS } from "@tether/shared";
 
 /**
  * POST /api/servers — Create a new server with default channels.
@@ -37,6 +37,14 @@ export default async function createServerRoute(fastify: FastifyInstance): Promi
         await tx.insert(serverMembers).values({
           serverId: newServer.id,
           userId,
+        });
+
+        // Create @everyone role (position 0, implicit for all members)
+        await tx.insert(roles).values({
+          serverId: newServer.id,
+          name: "@everyone",
+          permissions: String(DEFAULT_EVERYONE_PERMISSIONS),
+          position: 0,
         });
 
         // Create default channels

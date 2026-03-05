@@ -3,7 +3,8 @@ import type { FastifyInstance } from "fastify";
 import { eq, and } from "drizzle-orm";
 import { db } from "../../db/client.js";
 import { invites, serverMembers, users } from "../../db/schema.js";
-import type { CreateInviteRequest, InviteResponse } from "@tether/shared";
+import { PERMISSIONS, type CreateInviteRequest, type InviteResponse } from "@tether/shared";
+import { requirePermission, getServerPermissions } from "../../lib/permissions.js";
 
 /**
  * Server invite CRUD routes:
@@ -21,14 +22,10 @@ export default async function serverInvitesRoute(fastify: FastifyInstance): Prom
       const { id: serverId } = request.params;
       const userId = request.user!.id;
 
-      // Verify requesting user is a member of the server
-      const [membership] = await db
-        .select({ id: serverMembers.id })
-        .from(serverMembers)
-        .where(and(eq(serverMembers.serverId, serverId), eq(serverMembers.userId, userId)));
-
-      if (!membership) {
-        return reply.code(403).send({ error: "Not a member of this server" });
+      // Require MANAGE_INVITES to list invites
+      const auth = await requirePermission(userId, serverId, PERMISSIONS.MANAGE_INVITES);
+      if (!auth) {
+        return reply.code(403).send({ error: "Missing MANAGE_INVITES permission" });
       }
 
       // Fetch all invites joined with creator display name
@@ -87,14 +84,10 @@ export default async function serverInvitesRoute(fastify: FastifyInstance): Prom
       const userId = request.user!.id;
       const { expiresIn, maxUses } = request.body;
 
-      // Verify requesting user is a member of the server
-      const [membership] = await db
-        .select({ id: serverMembers.id })
-        .from(serverMembers)
-        .where(and(eq(serverMembers.serverId, serverId), eq(serverMembers.userId, userId)));
-
-      if (!membership) {
-        return reply.code(403).send({ error: "Not a member of this server" });
+      // Require MANAGE_INVITES to create invites
+      const auth = await requirePermission(userId, serverId, PERMISSIONS.MANAGE_INVITES);
+      if (!auth) {
+        return reply.code(403).send({ error: "Missing MANAGE_INVITES permission" });
       }
 
       // Generate 11-char URL-safe invite code using crypto.randomBytes
@@ -138,14 +131,10 @@ export default async function serverInvitesRoute(fastify: FastifyInstance): Prom
       const { id: serverId, inviteId } = request.params;
       const userId = request.user!.id;
 
-      // Verify requesting user is a member of the server
-      const [membership] = await db
-        .select({ id: serverMembers.id })
-        .from(serverMembers)
-        .where(and(eq(serverMembers.serverId, serverId), eq(serverMembers.userId, userId)));
-
-      if (!membership) {
-        return reply.code(404).send({ error: "Server not found" });
+      // Require MANAGE_INVITES to revoke invites
+      const auth = await requirePermission(userId, serverId, PERMISSIONS.MANAGE_INVITES);
+      if (!auth) {
+        return reply.code(403).send({ error: "Missing MANAGE_INVITES permission" });
       }
 
       // Delete the invite

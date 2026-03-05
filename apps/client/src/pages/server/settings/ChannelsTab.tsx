@@ -17,6 +17,7 @@ import {
   useDeleteChannel,
   useReorderChannels,
 } from "@/hooks/useChannels";
+import ChannelOverrideEditor from "@/components/server/ChannelOverrideEditor";
 import type { ChannelResponse } from "@tether/shared";
 
 // ============================================================
@@ -50,6 +51,7 @@ function ChannelRow({
 }: ChannelRowProps) {
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState(channel.name);
+  const [showOverrides, setShowOverrides] = useState(false);
 
   const updateChannel = useUpdateChannel(serverId);
   const deleteChannel = useDeleteChannel(serverId);
@@ -78,6 +80,7 @@ function ChannelRow({
   }
 
   return (
+    <div>
     <div className="flex items-center gap-2 bg-zinc-900/50 rounded-lg px-4 py-2.5 group">
       {/* Type badge */}
       <span
@@ -149,6 +152,21 @@ function ChannelRow({
         </svg>
       </button>
 
+      {/* Permissions button */}
+      <button
+        onClick={() => setShowOverrides(!showOverrides)}
+        className={`
+          p-1 rounded transition-colors cursor-pointer
+          ${showOverrides ? "text-cyan-400" : "text-zinc-500 hover:text-cyan-400 hover:bg-cyan-600/10"}
+        `}
+        title="Channel permissions"
+        aria-label="Channel permissions"
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z" />
+        </svg>
+      </button>
+
       {/* Delete button */}
       <button
         onClick={() => deleteChannel.mutate(channel.id)}
@@ -165,6 +183,14 @@ function ChannelRow({
           <path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
         </svg>
       </button>
+    </div>
+    {showOverrides && (
+      <ChannelOverrideEditor
+        channelId={channel.id}
+        serverId={serverId}
+        onClose={() => setShowOverrides(false)}
+      />
+    )}
     </div>
   );
 }

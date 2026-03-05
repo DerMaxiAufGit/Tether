@@ -1,7 +1,9 @@
 import type { FastifyInstance } from "fastify";
 import { db } from "../../db/client.js";
-import { channels, serverMembers, servers } from "../../db/schema.js";
-import { eq, and, asc, sql } from "drizzle-orm";
+import { channels } from "../../db/schema.js";
+import { eq, asc, sql } from "drizzle-orm";
+import { PERMISSIONS } from "@tether/shared";
+import { requirePermission } from "../../lib/permissions.js";
 
 interface UpdateChannelBody {
   name?: string;
@@ -58,26 +60,10 @@ export default async function channelByIdRoute(fastify: FastifyInstance): Promis
         return reply.code(400).send({ error: "DM channels cannot be edited" });
       }
 
-      // Verify user is a member of the server
-      const [membership] = await db
-        .select({ id: serverMembers.id })
-        .from(serverMembers)
-        .where(and(eq(serverMembers.serverId, serverId), eq(serverMembers.userId, userId)))
-        .limit(1);
-
-      if (!membership) {
-        return reply.code(404).send({ error: "Channel not found" });
-      }
-
-      // Owner check — only server owner can edit channels (Phase 7 will add fine-grained permissions)
-      const [server] = await db
-        .select({ ownerId: servers.ownerId })
-        .from(servers)
-        .where(eq(servers.id, serverId))
-        .limit(1);
-
-      if (!server || server.ownerId !== userId) {
-        return reply.code(403).send({ error: "Only the server owner can edit channels" });
+      // Require MANAGE_CHANNELS permission
+      const auth = await requirePermission(userId, serverId, PERMISSIONS.MANAGE_CHANNELS);
+      if (!auth) {
+        return reply.code(403).send({ error: "Missing MANAGE_CHANNELS permission" });
       }
 
       const updateValues: { name?: string; topic?: string | null; updatedAt: Date } = {
@@ -135,26 +121,10 @@ export default async function channelByIdRoute(fastify: FastifyInstance): Promis
         return reply.code(400).send({ error: "DM channels cannot be deleted via this endpoint" });
       }
 
-      // Verify user is a member of the server
-      const [membership] = await db
-        .select({ id: serverMembers.id })
-        .from(serverMembers)
-        .where(and(eq(serverMembers.serverId, serverId), eq(serverMembers.userId, userId)))
-        .limit(1);
-
-      if (!membership) {
-        return reply.code(404).send({ error: "Channel not found" });
-      }
-
-      // Owner check
-      const [server] = await db
-        .select({ ownerId: servers.ownerId })
-        .from(servers)
-        .where(eq(servers.id, serverId))
-        .limit(1);
-
-      if (!server || server.ownerId !== userId) {
-        return reply.code(403).send({ error: "Only the server owner can delete channels" });
+      // Require MANAGE_CHANNELS permission
+      const auth = await requirePermission(userId, serverId, PERMISSIONS.MANAGE_CHANNELS);
+      if (!auth) {
+        return reply.code(403).send({ error: "Missing MANAGE_CHANNELS permission" });
       }
 
       // Delete and compact positions in a single transaction

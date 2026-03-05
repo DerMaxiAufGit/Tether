@@ -1,8 +1,9 @@
 import type { FastifyInstance } from "fastify";
 import { db } from "../../db/client.js";
-import { channels, serverMembers, historyRequests, messageRecipientKeys, attachmentRecipientKeys } from "../../db/schema.js";
+import { channels, historyRequests, messageRecipientKeys, attachmentRecipientKeys } from "../../db/schema.js";
 import { eq, and } from "drizzle-orm";
-import type { HistoryGrantedEvent } from "@tether/shared";
+import { PERMISSIONS, type HistoryGrantedEvent } from "@tether/shared";
+import { requirePermission } from "../../lib/permissions.js";
 
 interface GrantBody {
   requestId: string;
@@ -68,7 +69,7 @@ export default async function historyGrantRoute(fastify: FastifyInstance): Promi
         return reply.code(400).send({ error: "Request is no longer pending" });
       }
 
-      // Verify granter is a server member
+      // Verify granter has GRANT_HISTORY permission
       const [channel] = await db
         .select({ serverId: channels.serverId })
         .from(channels)
@@ -79,14 +80,9 @@ export default async function historyGrantRoute(fastify: FastifyInstance): Promi
         return reply.code(404).send({ error: "Channel not found" });
       }
 
-      const [membership] = await db
-        .select({ id: serverMembers.id })
-        .from(serverMembers)
-        .where(and(eq(serverMembers.serverId, channel.serverId), eq(serverMembers.userId, granterId)))
-        .limit(1);
-
-      if (!membership) {
-        return reply.code(403).send({ error: "Not a member of this server" });
+      const auth = await requirePermission(granterId, channel.serverId, PERMISSIONS.GRANT_HISTORY);
+      if (!auth) {
+        return reply.code(403).send({ error: "Missing GRANT_HISTORY permission" });
       }
 
       // Batch insert message recipient keys for the requester

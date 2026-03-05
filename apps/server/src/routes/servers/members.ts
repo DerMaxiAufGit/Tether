@@ -1,34 +1,42 @@
 import type { FastifyInstance } from "fastify";
 import { db } from "../../db/client.js";
 import { servers, serverMembers, users, roles, memberRoles } from "../../db/schema.js";
-import { eq, and, inArray, sql } from "drizzle-orm";
-
-const ADMINISTRATOR_BIT = 8n;
-
-/**
- * Returns the set of serverMember.id values in the given server that have
- * at least one role with the ADMINISTRATOR permission bit set.
- */
-async function getAdminMemberIdSet(serverId: string): Promise<Set<string>> {
-  const rows = await db
-    .selectDistinct({ memberId: memberRoles.memberId })
-    .from(memberRoles)
-    .innerJoin(roles, eq(roles.id, memberRoles.roleId))
-    .innerJoin(serverMembers, eq(serverMembers.id, memberRoles.memberId))
-    .where(
-      and(
-        eq(serverMembers.serverId, serverId),
-        sql`(${roles.permissions}::bigint & ${ADMINISTRATOR_BIT}) != 0`,
-      ),
-    );
-  return new Set(rows.map((r) => r.memberId));
-}
+import { eq, and, sql } from "drizzle-orm";
+import { PERMISSIONS, hasBit } from "@tether/shared";
+import { getServerPermissions, requirePermission } from "../../lib/permissions.js";
 
 /**
- * GET    /api/servers/:id/members         — List members with user details (member-only)
- * DELETE /api/servers/:id/members/:userId — Leave (self) or kick (owner or admin)
+ * GET    /api/servers/:id/members              — List members with user details (member-only)
+ * GET    /api/servers/:id/members/me/permissions — Get my effective permissions
+ * DELETE /api/servers/:id/members/:userId       — Leave (self) or kick (KICK_MEMBERS)
  */
 export default async function serverMembersRoute(fastify: FastifyInstance): Promise<void> {
+  // GET /api/servers/:id/members/me/permissions
+  fastify.get<{ Params: { id: string } }>("/:id/members/me/permissions", {
+    preHandler: [fastify.authenticate],
+    schema: {
+      params: {
+        type: "object",
+        required: ["id"],
+        properties: {
+          id: { type: "string", format: "uuid" },
+        },
+      },
+    },
+    handler: async (request, reply) => {
+      const userId = request.user!.id;
+      const { id: serverId } = request.params;
+
+      const result = await getServerPermissions(userId, serverId);
+      if (!result) return reply.code(404).send({ error: "Server not found" });
+
+      return reply.code(200).send({
+        permissions: String(result.permissions),
+        isOwner: result.isOwner,
+      });
+    },
+  });
+
   // GET /api/servers/:id/members
   fastify.get<{ Params: { id: string } }>("/:id/members", {
     preHandler: [fastify.authenticate],
@@ -75,17 +83,48 @@ export default async function serverMembersRoute(fastify: FastifyInstance): Prom
         .innerJoin(users, eq(users.id, serverMembers.userId))
         .where(eq(serverMembers.serverId, serverId));
 
-      // Attach isAdmin flag from the roles system
-      const adminIdSet = await getAdminMemberIdSet(serverId);
-      const members = memberRows.map((m) => ({
-        ...m,
-        isAdmin: adminIdSet.has(m.id),
-        // Convert bytea Buffer to base64 string for transport
-        user: {
-          ...m.user,
-          x25519PublicKey: (m.user.x25519PublicKey as unknown as Buffer).toString("base64"),
-        },
-      }));
+      // Fetch all member role assignments for this server
+      const roleAssignments = await db
+        .select({
+          memberId: memberRoles.memberId,
+          roleId: roles.id,
+          roleName: roles.name,
+          roleColor: roles.color,
+          rolePosition: roles.position,
+          rolePerms: roles.permissions,
+        })
+        .from(memberRoles)
+        .innerJoin(roles, eq(roles.id, memberRoles.roleId))
+        .where(eq(roles.serverId, serverId));
+
+      // Group by memberId
+      const roleMap = new Map<string, { id: string; name: string; color: string | null; position: number; permissions: string }[]>();
+      for (const ra of roleAssignments) {
+        const list = roleMap.get(ra.memberId) ?? [];
+        list.push({ id: ra.roleId, name: ra.roleName, color: ra.roleColor, position: ra.rolePosition, permissions: ra.rolePerms });
+        roleMap.set(ra.memberId, list);
+      }
+
+      const ADMIN_BIT = PERMISSIONS.ADMINISTRATOR;
+
+      const members = memberRows.map((m) => {
+        const memberRoleList = roleMap.get(m.id) ?? [];
+        const isAdmin = memberRoleList.some((r) => hasBit(Number(r.permissions), ADMIN_BIT));
+        return {
+          ...m,
+          isAdmin,
+          roles: memberRoleList.map((r) => ({
+            id: r.id,
+            name: r.name,
+            color: r.color,
+            position: r.position,
+          })),
+          user: {
+            ...m.user,
+            x25519PublicKey: (m.user.x25519PublicKey as unknown as Buffer).toString("base64"),
+          },
+        };
+      });
 
       return reply.code(200).send({ members });
     },
@@ -121,17 +160,6 @@ export default async function serverMembersRoute(fastify: FastifyInstance): Prom
         return reply.code(404).send({ error: "Server not found" });
       }
 
-      // Verify requester is a member of the server
-      const [requesterMembership] = await db
-        .select({ id: serverMembers.id })
-        .from(serverMembers)
-        .where(and(eq(serverMembers.serverId, serverId), eq(serverMembers.userId, requesterId)))
-        .limit(1);
-
-      if (!requesterMembership) {
-        return reply.code(404).send({ error: "Server not found" });
-      }
-
       const isOwner = server.ownerId === requesterId;
 
       if (isSelf) {
@@ -139,14 +167,20 @@ export default async function serverMembersRoute(fastify: FastifyInstance): Prom
         if (isOwner) {
           return reply.code(400).send({ error: "Transfer ownership before leaving" });
         }
+        // Verify requester is a member
+        const [requesterMembership] = await db
+          .select({ id: serverMembers.id })
+          .from(serverMembers)
+          .where(and(eq(serverMembers.serverId, serverId), eq(serverMembers.userId, requesterId)))
+          .limit(1);
+        if (!requesterMembership) {
+          return reply.code(404).send({ error: "Server not found" });
+        }
       } else {
-        // Kick — owner can kick anyone; admin can kick non-owners
-        if (!isOwner) {
-          // Check if requester has ADMINISTRATOR permission
-          const adminSet = await getAdminMemberIdSet(serverId);
-          if (!adminSet.has(requesterMembership.id)) {
-            return reply.code(403).send({ error: "Only the server owner or an admin can kick members" });
-          }
+        // Kick — requires KICK_MEMBERS permission
+        const auth = await requirePermission(requesterId, serverId, PERMISSIONS.KICK_MEMBERS);
+        if (!auth) {
+          return reply.code(403).send({ error: "Missing KICK_MEMBERS permission" });
         }
 
         // Cannot kick the server owner

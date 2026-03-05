@@ -10,30 +10,42 @@
  * Only accessible by server members; owner sees extra controls.
  */
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
 import { useSocket } from "@/hooks/useSocket";
+import { useMyPermissions, hasPermission, PERMISSIONS } from "@/hooks/usePermissions";
 import type { ServerResponse } from "@tether/shared";
 
 import OverviewTab from "./OverviewTab";
 import InvitesTab from "./InvitesTab";
 import MembersTab from "./MembersTab";
 import ChannelsTab from "./ChannelsTab";
+import RolesTab from "./RolesTab";
+import BansTab from "./BansTab";
 
 // ============================================================
 // Types
 // ============================================================
 
-type SettingsTab = "overview" | "invites" | "members" | "channels";
+type SettingsTab = "overview" | "invites" | "members" | "channels" | "roles" | "bans";
 
-const TABS: { id: SettingsTab; label: string }[] = [
+interface TabDef {
+  id: SettingsTab;
+  label: string;
+  /** Permission required to see this tab. Undefined = always visible. */
+  permission?: number;
+}
+
+const ALL_TABS: TabDef[] = [
   { id: "overview", label: "Overview" },
-  { id: "invites", label: "Invites" },
+  { id: "channels", label: "Channels", permission: PERMISSIONS.MANAGE_CHANNELS },
+  { id: "roles", label: "Roles", permission: PERMISSIONS.MANAGE_ROLES },
+  { id: "invites", label: "Invites", permission: PERMISSIONS.MANAGE_INVITES },
   { id: "members", label: "Members" },
-  { id: "channels", label: "Channels" },
+  { id: "bans", label: "Bans", permission: PERMISSIONS.BAN_MEMBERS },
 ];
 
 // ============================================================
@@ -49,6 +61,14 @@ export default function ServerSettings() {
 
   const [activeTab, setActiveTab] = useState<SettingsTab>("overview");
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+  const { data: permsData } = useMyPermissions(serverId);
+
+  const visibleTabs = useMemo(() => {
+    if (!permsData) return ALL_TABS.filter((t) => !t.permission); // show only non-gated tabs while loading
+    return ALL_TABS.filter(
+      (t) => !t.permission || permsData.isOwner || hasPermission(permsData.permissions, t.permission),
+    );
+  }, [permsData]);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["servers", serverId],
@@ -124,7 +144,7 @@ export default function ServerSettings() {
 
         {/* Tab buttons */}
         <nav className="flex-1 px-2 py-3 space-y-0.5">
-          {TABS.map((tab) => (
+          {visibleTabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
@@ -203,9 +223,11 @@ export default function ServerSettings() {
         {/* Tab content */}
         <div className="max-w-2xl mx-auto px-8 py-8">
           {activeTab === "overview" && <OverviewTab server={server} />}
+          {activeTab === "channels" && <ChannelsTab serverId={server.id} />}
+          {activeTab === "roles" && <RolesTab server={server} />}
           {activeTab === "invites" && <InvitesTab server={server} />}
           {activeTab === "members" && <MembersTab server={server} />}
-          {activeTab === "channels" && <ChannelsTab serverId={server.id} />}
+          {activeTab === "bans" && <BansTab server={server} />}
         </div>
       </div>
     </div>

@@ -272,6 +272,32 @@ export type Invite = InferSelectModel<typeof invites>;
 export type NewInvite = InferInsertModel<typeof invites>;
 
 // ---------------------------------------------------------------------------
+// bans — Server-scoped user bans
+// ---------------------------------------------------------------------------
+
+export const bans = pgTable(
+  "bans",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    serverId: uuid("server_id")
+      .notNull()
+      .references(() => servers.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    bannedBy: uuid("banned_by")
+      .notNull()
+      .references(() => users.id),
+    reason: text("reason"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (t) => [uniqueIndex("bans_server_user_idx").on(t.serverId, t.userId)],
+);
+
+export type Ban = InferSelectModel<typeof bans>;
+export type NewBan = InferInsertModel<typeof bans>;
+
+// ---------------------------------------------------------------------------
 // channel_overrides — Per-channel role permission overrides
 // ---------------------------------------------------------------------------
 

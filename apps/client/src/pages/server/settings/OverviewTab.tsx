@@ -13,6 +13,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
 import { useSocket } from "@/hooks/useSocket";
+import { useMyPermissions, hasPermission, PERMISSIONS } from "@/hooks/usePermissions";
 import type { ServerResponse } from "@tether/shared";
 
 // ============================================================
@@ -34,6 +35,8 @@ export default function OverviewTab({ server }: OverviewTabProps) {
   const socket = useSocket();
 
   const isOwner = user?.id === server.ownerId;
+  const { data: permsData } = useMyPermissions(server.id);
+  const canManageServer = isOwner || hasPermission(permsData?.permissions, PERMISSIONS.MANAGE_SERVER);
 
   // Server name editing
   const [name, setName] = useState(server.name);
@@ -104,6 +107,7 @@ export default function OverviewTab({ server }: OverviewTabProps) {
             value={name}
             onChange={(e) => setName(e.target.value)}
             maxLength={100}
+            disabled={!canManageServer}
             className="
               w-full max-w-md px-3 py-2 rounded-lg
               bg-zinc-900 border border-zinc-700
@@ -117,7 +121,7 @@ export default function OverviewTab({ server }: OverviewTabProps) {
         <div className="flex items-center gap-3">
             <button
               type="submit"
-              disabled={!hasChanges || updateServer.isPending}
+              disabled={!canManageServer || !hasChanges || updateServer.isPending}
               className="
                 px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer
                 bg-cyan-600 hover:bg-cyan-500 disabled:bg-zinc-700 disabled:text-zinc-500 disabled:cursor-not-allowed

@@ -3,6 +3,8 @@ import { db } from "../../db/client.js";
 import { servers, serverMembers } from "../../db/schema.js";
 import { eq, and } from "drizzle-orm";
 import type { UpdateServerRequest } from "@tether/shared";
+import { PERMISSIONS } from "@tether/shared";
+import { requirePermission, getServerPermissions } from "../../lib/permissions.js";
 
 /**
  * GET    /api/servers/:id — Get a single server (member-only)
@@ -74,25 +76,10 @@ export default async function serverByIdRoute(fastify: FastifyInstance): Promise
       const { id: serverId } = request.params;
       const { name } = request.body;
 
-      // Verify user is a member of the server
-      const [membership] = await db
-        .select({ serverId: serverMembers.serverId })
-        .from(serverMembers)
-        .where(and(eq(serverMembers.serverId, serverId), eq(serverMembers.userId, userId)))
-        .limit(1);
-
-      if (!membership) {
-        return reply.code(404).send({ error: "Server not found" });
-      }
-
-      const [existing] = await db
-        .select({ id: servers.id, ownerId: servers.ownerId })
-        .from(servers)
-        .where(eq(servers.id, serverId))
-        .limit(1);
-
-      if (!existing) {
-        return reply.code(404).send({ error: "Server not found" });
+      // Require MANAGE_SERVER permission
+      const auth = await requirePermission(userId, serverId, PERMISSIONS.MANAGE_SERVER);
+      if (!auth) {
+        return reply.code(403).send({ error: "Missing MANAGE_SERVER permission" });
       }
 
       const updateValues: { name?: string; updatedAt: Date } = { updatedAt: new Date() };
@@ -110,7 +97,7 @@ export default async function serverByIdRoute(fastify: FastifyInstance): Promise
     },
   });
 
-  // DELETE /api/servers/:id
+  // DELETE /api/servers/:id — owner-only (intentionally not permission-gated)
   fastify.delete<{ Params: { id: string } }>("/:id", {
     preHandler: [fastify.authenticate],
     schema: {

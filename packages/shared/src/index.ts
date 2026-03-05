@@ -10,4 +10,5 @@ export * from "./types/reaction.js";
 export * from "./types/voice.js";
 export * from "./types/file.js";
 export * from "./types/history.js";
+export * from "./permissions.js";
 export const TETHER_VERSION = "0.1.0";
