@@ -159,6 +159,66 @@ The following ports must be open on your firewall/security group for Tether to f
 - In production, set `COTURN_HOST` in your `.env` to the server's public IP or domain.
 - The TURN relay range (`49152-49200`) is intentionally small for development. For production with many concurrent voice users, expand it (e.g., `49152-65535`) and update both `docker-compose.yml` ports and the `--min-port`/`--max-port` coturn args to match.
 
+## Reverse Proxy (Production Nginx Example)
+
+If you're running Tether behind an external nginx reverse proxy with SSL, here's a example config. Replace `tether.example.com` with your domain and adjust the upstream port if needed.
+
+```nginx
+upstream tether_backend {
+    server 127.0.0.1:3000;  # Docker proxy service
+}
+
+server {
+    listen 80;
+    server_name tether.example.com;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name tether.example.com;
+
+    ssl_certificate     /etc/letsencrypt/live/tether.example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/tether.example.com/privkey.pem;
+
+    # SSL hardening
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+    ssl_prefer_server_ciphers on;
+
+    client_max_body_size 50M;  # file upload limit
+
+    location / {
+        proxy_pass http://tether_backend;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # WebSocket support for Socket.IO
+    location /socket.io/ {
+        proxy_pass http://tether_backend;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # Socket.IO timeouts
+        proxy_read_timeout 86400s;
+        proxy_send_timeout 86400s;
+    }
+}
+```
+
+When using SSL, update your `.env`:
+```
+CLIENT_URL=https://tether.example.com
+```
+
 ## How Encryption Works
 
 1. **Account creation** — Your password is run through PBKDF2 (600,000 iterations) to derive a master key, then HKDF produces separate keys for authentication and encryption.
